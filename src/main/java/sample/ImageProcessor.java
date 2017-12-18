@@ -1,8 +1,8 @@
 package sample;
         /*Author: Lubomir Nepil*/
+
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.IOException;
 
 public class ImageProcessor {
     /**
@@ -122,11 +122,18 @@ public class ImageProcessor {
         return luminanceMatrix;
     }
 
-    /*This method takes in the given image and outputs an image whose color is based
-off the L value of each pixel in the Lab color system, as the L coordinate is proportional to Luminance.
-Color scale can be changed in the double for loop.
-It also outputs a matrix of Luminance values calculated from the L coordinate of each pixel in Lab color system.*/
+    /*Colors not specified, using default values*/
     public static BufferedImage constructHueImage(double[][] LlabMatrix) {
+        return constructHueImage(LlabMatrix, new Color[]{Color.BLACK, new Color(163, 3, 3), new Color(255, 0, 0),
+                new Color(219, 70, 2), new Color(255, 136, 0), new Color(255, 229, 0),
+                new Color(247, 220, 17), Color.WHITE});
+    }
+
+    /*This method takes in the given image and outputs an image whose color is based
+    off the L value of each pixel in the Lab color system, as the L coordinate is proportional to Luminance.
+    Color scale can be changed by Color array input when invoking the method.*/
+    public static BufferedImage constructHueImage(double[][] LlabMatrix, Color[] colors) {
+        double intervalSize = 100.f / colors.length;
         //get original img dimensions
         int height = LlabMatrix.length;
         int width = LlabMatrix[0].length;
@@ -137,24 +144,15 @@ It also outputs a matrix of Luminance values calculated from the L coordinate of
             for (int j = 0; j < height; j++) {
                 //get L value
                 double lValue = LlabMatrix[j][i];
+                Color color;
                 //set pixel color based on L value
-                if (lValue < 20) {
-                    hueImg.setRGB(i, j, Color.BLACK.getRGB());
-                } else if (lValue >= 20 && lValue < 30) {
-                    hueImg.setRGB(i, j, new Color(163, 3, 3).getRGB());
-                } else if (lValue >= 30 && lValue < 40) {
-                    hueImg.setRGB(i, j, new Color(255, 0, 0).getRGB());
-                } else if (lValue >= 40 && lValue < 50) {
-                    hueImg.setRGB(i, j, new Color(219, 70, 2).getRGB());
-                } else if (lValue >= 50 && lValue < 60) {
-                    hueImg.setRGB(i, j, new Color(255, 136, 0).getRGB());
-                } else if (lValue >= 60 && lValue < 70) {
-                    hueImg.setRGB(i, j, new Color(255, 229, 0).getRGB());
-                } else if (lValue >= 70 && lValue < 80) {
-                    hueImg.setRGB(i, j, new Color(247, 220, 17).getRGB());
+                if (lValue != 100) {
+                    color = colors[(int) Math.floor(lValue / intervalSize)];
                 } else {
-                    hueImg.setRGB(i, j, Color.WHITE.getRGB());
+                    color = Color.WHITE;
                 }
+
+                hueImg.setRGB(i, j, color.getRGB());
             }
         }
 

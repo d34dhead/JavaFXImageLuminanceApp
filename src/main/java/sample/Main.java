@@ -18,7 +18,7 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-
+import java.text.DecimalFormat;
 
 
 public class Main extends Application {
@@ -72,6 +72,12 @@ public class Main extends Application {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+
+                //add legend
+                HBox legend = createLegend();
+                gridpane.add(legend, 0, 1);
+                root.getChildren().remove(gridpane);
+                root.getChildren().add(gridpane);
             }
         });
 
@@ -128,10 +134,34 @@ public class Main extends Application {
         BufferedImage scaledImg = ImageScaler.scaleImage(srcImg, width, height);//scale to fit frame
 
         lumImg.setlLabMatrix(ImageProcessor.constructLlabMatrix(scaledImg));
-        BufferedImage hueImg = ImageProcessor.constructHueImage(lumImg.getlLabMatrix());
+        BufferedImage hueImg = ImageProcessor.constructHueImage(lumImg.getlLabMatrix(), lumImg.getHueImgColors());
         File outputFile = new File("outputImg.jpg");
         ImageIO.write(hueImg, "jpg", outputFile);
         return new Image(outputFile.toURI().toString());
+    }
+
+    private HBox createLegend(){
+        HBox legend = new HBox();
+        DecimalFormat df = new DecimalFormat("#.0");
+        java.awt.Color[] awtColors = lumImg.getHueImgColors();
+        int colorCount = awtColors.length;
+        double intervalSize = (100.f/colorCount);
+        Color[] fxColors = new Color[colorCount];
+
+        for(int i = 0; i < colorCount; i++){
+            java.awt.Color awtColor = awtColors[i];
+            fxColors[i] = Color.rgb(awtColor.getRed(),awtColor.getGreen(),awtColor.getBlue());
+            double elementWidth = legend.getMaxWidth();
+            double elementHeight = legend.getMaxHeight();
+
+            Label interval = new Label("<" + df.format(i * intervalSize) + ", " + df.format((i + 1)* intervalSize) + ")");
+            interval.setMinSize(elementWidth, elementHeight);
+            Label coloredsquare = new Label("       ");
+            interval.setMinSize(elementWidth, elementHeight);
+            coloredsquare.setBackground(new Background( new BackgroundFill(fxColors[i], CornerRadii.EMPTY, Insets.EMPTY )));
+            legend.getChildren().addAll(coloredsquare, interval);
+        }
+    return legend;
     }
 
     public static void main(String[] args) {
