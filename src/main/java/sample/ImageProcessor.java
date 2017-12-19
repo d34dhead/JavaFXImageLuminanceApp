@@ -1,6 +1,8 @@
 package sample;
         /*Author: Lubomir Nepil*/
 
+import org.mariuszgromada.math.mxparser.*;
+
 import java.awt.*;
 import java.awt.image.BufferedImage;
 
@@ -106,8 +108,10 @@ public class ImageProcessor {
         return LlabMatrix;
     }
 
-    /*This method outputs a matrix of luminance values from a matrix of Llab values and given aperture number and exposure time*/
+    /*This method outputs a matrix of luminance values from a matrix of Llab values and given aperture number and exposure time
+    * Faster than the same method with specified formula*/
     public static double[][] constructLuminanceMatrix(double[][] LlabMatrix, double aperture, double exposure) {
+
         int rows = LlabMatrix.length;
         int cols = LlabMatrix[0].length;
 
@@ -117,6 +121,31 @@ public class ImageProcessor {
         for (int i = 0; i < cols; i++) {
             for (int j = 0; j < rows; j++) {
                 luminanceMatrix[j][i] = (aperture * aperture / exposure) * 0.0373 * Math.exp(0.0307 * LlabMatrix[j][i]);
+            }
+        }
+        return luminanceMatrix;
+    }
+    //
+    public static double[][] constructLuminanceMatrix(
+            double[][] LlabMatrix, double aperture, double exposure, String expressionString) {
+        //define function arguments
+        Argument fNumber = new Argument("F", aperture);
+        Argument exposureTime = new Argument("t", exposure);
+        //dependent argument L
+        Argument lightness = new Argument("Llab");
+        //expression used to calculate luminance
+        Expression luminanceFormula = new Expression(expressionString, fNumber, exposureTime, lightness );
+
+        int rows = LlabMatrix.length;
+        int cols = LlabMatrix[0].length;
+
+        //create a temp L matrix of the same size as Llab matrix
+        double[][] luminanceMatrix = new double[rows][cols];
+
+        for (int i = 0; i < cols; i++) {
+            for (int j = 0; j < rows; j++) {
+                lightness.setArgumentValue(LlabMatrix[j][i]);
+                luminanceMatrix[j][i] = luminanceFormula.calculate();
             }
         }
         return luminanceMatrix;

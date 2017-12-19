@@ -3,7 +3,7 @@ package sample;
 import java.awt.*;
 
 /*Author: Lubomir Nepil*/
-public class LuminanceImage {
+public class ImageParametersContainer {
     private double[][] lMatrix;
     private double[][] lLabMatrix;
     private Double aperture;
@@ -11,6 +11,15 @@ public class LuminanceImage {
     private Color[] hueImgColors = new Color[]{Color.BLACK, new Color(163, 3, 3), new Color(255, 0, 0),
             new Color(219, 70, 2), new Color(255, 136, 0), new Color(255, 229, 0),
             new Color(247, 220, 17), Color.WHITE};
+    private String luminanceFormula;
+
+    public String getLuminanceFormula() {
+        return luminanceFormula;
+    }
+
+    public void setLuminanceFormula(String luminanceFormula) {
+        this.luminanceFormula = luminanceFormula;
+    }
 
     public Color[] getHueImgColors() {
         return hueImgColors;
@@ -46,15 +55,15 @@ public class LuminanceImage {
 
     public void populateLMatrix() {
         if(this.lLabMatrix != null) {
-            this.lMatrix = ImageProcessor.constructLuminanceMatrix(this.lLabMatrix, aperture, exposure);
+            if(this.luminanceFormula == null){
+                this.lMatrix = ImageProcessor.constructLuminanceMatrix(this.lLabMatrix, aperture, exposure);
+            }else{
+                this.lMatrix = ImageProcessor.constructLuminanceMatrix(this.lLabMatrix, aperture, exposure, luminanceFormula);
+            }
         }
-    }
+}
 
     public boolean apertureAndExposureSet(){
-        if(this.aperture != null && this.exposure != null){
-            return true;
-
-        }
-        return false;
+        return this.aperture != null && this.exposure != null;
     }
 }
