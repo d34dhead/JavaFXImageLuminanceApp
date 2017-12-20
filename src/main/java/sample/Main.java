@@ -1,5 +1,6 @@
 package sample;
-/*Author: Lubomir Nepil*/
+        /*Author: Lubomir Nepil*/
+
 import javafx.application.Application;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.geometry.Insets;
@@ -17,14 +18,14 @@ import javafx.stage.Stage;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.text.DecimalFormat;
+import java.util.Properties;
 
 
 public class Main extends Application {
     private final ImageParametersContainer imgParametersContainer = new ImageParametersContainer();
-
+    private final PropertiesManager prop = new PropertiesManager();
     @Override
     public void start(Stage primaryStage) {
 
@@ -73,8 +74,8 @@ public class Main extends Application {
         final Label coords = new Label("");
         imv.setOnMouseMoved(e -> {
             if (imgParametersContainer.getlMatrix() != null) {
-                coords.setText("x: " + (int)Math.floor(e.getX()) + " y: " + (int)Math.floor(e.getY()));
-                lumTextField.setText(String.format("%.2f", imgParametersContainer.getPixelLuminance((int)Math.floor(e.getX()), (int)Math.floor(e.getY()))));
+                coords.setText("x: " + (int) Math.floor(e.getX()) + " y: " + (int) Math.floor(e.getY()));
+                lumTextField.setText(String.format("%.2f", imgParametersContainer.getPixelLuminance((int) Math.floor(e.getX()), (int) Math.floor(e.getY()))));
             }
         });
 
@@ -110,9 +111,9 @@ public class Main extends Application {
         TextField exposureTextField = new TextField("");
         exposureTextField.setOnAction(e -> {
             String text = exposureTextField.getText();
-            if(text.matches("^[+-]?([0-9]*[.])?[0-9]+$")){
+            if (text.matches("^[+-]?([0-9]*[.])?[0-9]+$")) {
                 this.imgParametersContainer.setExposure(Double.parseDouble(text));
-                if(this.imgParametersContainer.apertureAndExposureSet()){
+                if (this.imgParametersContainer.apertureAndExposureSet()) {
                     this.imgParametersContainer.populateLMatrix();
                 }
             }
@@ -123,9 +124,9 @@ public class Main extends Application {
 
         apertureTextField.setOnAction(e -> {
             String text = apertureTextField.getText();
-            if(text.matches("^[+-]?([0-9]*[.])?[0-9]+$")){
+            if (text.matches("^[+-]?([0-9]*[.])?[0-9]+$")) {
                 this.imgParametersContainer.setAperture(Double.parseDouble(text));
-                if(this.imgParametersContainer.apertureAndExposureSet()){
+                if (this.imgParametersContainer.apertureAndExposureSet()) {
                     this.imgParametersContainer.populateLMatrix();
                 }
             }
@@ -136,14 +137,14 @@ public class Main extends Application {
         vertBox.setPadding(new Insets(10, 5, 0, 5));
         //openBtn.prefWidthProperty().bind(vertBox.widthProperty());
         vertBox.getChildren().addAll(exposureLbl, exposureTextField, apertureLbl, apertureTextField,
-                luminance, lumTextField,coords);
+                luminance, lumTextField, coords);
         vertBox.setFillWidth(true);
         vertBox.maxHeightProperty().bind(gridpane.maxHeightProperty());
 
         /*populate grid*/
         gridpane.add(scrollPane, 0, 0);
         gridpane.add(vertBox, 1, 0);
-        VBox outerVbox =  new VBox(menu,gridpane);
+        VBox outerVbox = new VBox(menu, gridpane);
         root.getChildren().add(outerVbox);
         primaryStage.setMaximized(true);
         primaryStage.setResizable(true);
@@ -151,9 +152,36 @@ public class Main extends Application {
         primaryStage.show();
 
     }
-
+    //TODO:add refresh functionality, when submiting changes
     private void showGeneralSettingsWindow() {
+        boolean fit = Boolean.parseBoolean(prop.getProperty("fitToWindow"));
 
+        Stage stage = new Stage();
+        VBox settingsBox = new VBox();
+        settingsBox.setPadding(new Insets(10));
+        settingsBox.setAlignment(Pos.CENTER);
+
+        CheckBox fitToWindowCheck = new CheckBox("Fit image to window (image will be downsized accordingly, " +
+                "loss of precision may occur.");
+        fitToWindowCheck.setSelected(fit);
+        fitToWindowCheck.setWrapText(true);
+        Button okBtn = new Button("Save");
+        settingsBox.getChildren().addAll(fitToWindowCheck, okBtn);
+
+        okBtn.setOnAction(e -> {
+            if (fitToWindowCheck.isSelected()) {
+                prop.setProperty("fitToWindow", "true");
+            } else {
+                prop.setProperty("fitToWindow", "false");
+            }
+
+            prop.storeProps();
+            stage.close();
+        });
+
+        Scene scene = new Scene(settingsBox, 250, 150);
+        stage.setScene(scene);
+        stage.show();
     }
 
     private void showFormulaWindow() {
@@ -171,7 +199,7 @@ public class Main extends Application {
         //TODO:add input validation with alert
         submitBtn.setOnAction(e -> {
             imgParametersContainer.setLuminanceFormula(formulaText.getText());
-            if(!(imgParametersContainer.getlLabMatrix() == null)){
+            if (!(imgParametersContainer.getlLabMatrix() == null)) {
                 imgParametersContainer.populateLMatrix();
             }
             stage.close();
@@ -181,6 +209,7 @@ public class Main extends Application {
         stage.setScene(scene);
         stage.show();
     }
+
     private Image openImg(File file) throws IOException {
         BufferedImage srcImg = ImageIO.read(file);
         imgParametersContainer.setlLabMatrix(ImageProcessor.constructLlabMatrix(srcImg));
@@ -188,31 +217,31 @@ public class Main extends Application {
         return SwingFXUtils.toFXImage(hueImg, null);
     }
 
-    private HBox createLegend(){
+    private HBox createLegend() {
         HBox legend = new HBox();
         legend.setSpacing(5);
-        legend.setPadding(new Insets(5,0,0,0));
+        legend.setPadding(new Insets(5, 0, 0, 0));
         DecimalFormat df = new DecimalFormat("#.0");
         java.awt.Color[] awtColors = imgParametersContainer.getHueImgColors();
         int colorCount = awtColors.length;
-        double intervalSize = (100.f/colorCount);
+        double intervalSize = (100.f / colorCount);
         Color[] fxColors = new Color[colorCount];
 
-        for(int i = 0; i < colorCount; i++){
+        for (int i = 0; i < colorCount; i++) {
             java.awt.Color awtColor = awtColors[i];
-            fxColors[i] = Color.rgb(awtColor.getRed(),awtColor.getGreen(),awtColor.getBlue());
+            fxColors[i] = Color.rgb(awtColor.getRed(), awtColor.getGreen(), awtColor.getBlue());
 
-            Label interval = new Label("<" + df.format(i * intervalSize) + ", " + df.format((i + 1)* intervalSize) + ")");
-            interval.setFont(Font.font(12));
+            Label interval = new Label("<" + df.format(i * intervalSize) + ", " + df.format((i + 1) * intervalSize) + ")");
+            interval.setStyle("-fx-font: italic bold 18px arial, serif ");
             Label coloredsquare = new Label("         ");
             coloredsquare.setStyle("-fx-border-style: solid inside;" +
                     "-fx-border-width: 1;" +
                     "-fx-border-color: black;");
-            coloredsquare.setBackground(new Background( new BackgroundFill(fxColors[i], CornerRadii.EMPTY, Insets.EMPTY)));
+            coloredsquare.setBackground(new Background(new BackgroundFill(fxColors[i], CornerRadii.EMPTY, Insets.EMPTY)));
             legend.getChildren().addAll(coloredsquare, interval);
 
         }
-    return legend;
+        return legend;
     }
 
     public static void main(String[] args) {
