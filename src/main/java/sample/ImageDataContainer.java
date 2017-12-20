@@ -3,7 +3,7 @@ package sample;
 import java.awt.*;
 
 /*Author: Lubomir Nepil*/
-public class ImageParametersContainer {
+public class ImageDataContainer {
     private double[][] lMatrix;
     private double[][] lLabMatrix;
     private Double aperture;
