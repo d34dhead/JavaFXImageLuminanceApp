@@ -1,9 +1,12 @@
 package sample;
 
 import java.awt.*;
+import java.awt.image.BufferedImage;
 
 /*Author: Lubomir Nepil*/
 public class ImageDataContainer {
+    private BufferedImage fullSizedImage;
+    private BufferedImage resizedImg;
     private double[][] lMatrix;
     private double[][] lLabMatrix;
     private Double aperture;
@@ -49,21 +52,54 @@ public class ImageDataContainer {
         return lMatrix;
     }
 
+    public BufferedImage getFullSizedImage() {
+        return fullSizedImage;
+    }
+
+    public void setFullSizedImage(BufferedImage fullSizedImage) {
+        this.fullSizedImage = fullSizedImage;
+    }
+
     public double getPixelLuminance(int x, int y) {
         return this.lMatrix[y][x];
     }
 
+    public BufferedImage getResizedImg() {
+        return resizedImg;
+    }
+
+    public void setResizedImg(BufferedImage resizedImg) {
+        this.resizedImg = resizedImg;
+    }
+
     public void populateLMatrix() {
-        if(this.lLabMatrix != null) {
-            if(this.luminanceFormula == null){
-                this.lMatrix = ImageProcessor.constructLuminanceMatrix(this.lLabMatrix, aperture, exposure);
-            }else{
-                this.lMatrix = ImageProcessor.constructLuminanceMatrix(this.lLabMatrix, aperture, exposure, luminanceFormula);
+        if (this.apertureAndExposureSet()) {
+            if (this.lLabMatrix != null) {
+                if (this.luminanceFormula == null) {
+                    this.lMatrix = ImageProcessor.constructLuminanceMatrix(this.lLabMatrix, aperture, exposure);
+                } else {
+                    this.lMatrix = ImageProcessor.constructLuminanceMatrix(this.lLabMatrix, aperture, exposure, luminanceFormula);
+                }
             }
         }
-}
+    }
 
-    public boolean apertureAndExposureSet(){
+    public void populateLlabMatrix(boolean resized) {
+
+        if (!resized) {
+            if (this.fullSizedImage != null) {
+                this.lLabMatrix = ImageProcessor.constructLlabMatrix(this.fullSizedImage);
+            }
+        } else {
+            if (this.resizedImg != null) {
+                this.lLabMatrix = ImageProcessor.constructLlabMatrix(this.resizedImg);
+            }
+        }
+    }
+
+    public boolean apertureAndExposureSet() {
         return this.aperture != null && this.exposure != null;
     }
+
+
 }

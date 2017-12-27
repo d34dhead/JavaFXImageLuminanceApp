@@ -24,7 +24,7 @@ import java.text.DecimalFormat;
 public class Main extends Application {
     private final ImageDataContainer imgDataContainer = new ImageDataContainer();
     private final PropertiesManager prop = new PropertiesManager();
-
+    private final ImageView imv = new ImageView();
     @Override
     public void start(Stage primaryStage) {
 
@@ -44,7 +44,6 @@ public class Main extends Application {
         menu.getMenus().addAll(menuFile, menuSettings);
 
         formulaItem.setOnAction(e -> showFormulaWindow());
-
         generalSettingsItem.setOnAction(e -> showGeneralSettingsWindow());
 
         /*grid setup*/
@@ -66,11 +65,11 @@ public class Main extends Application {
 
 
         /*imageView setup*/
-        final ImageView imv = new ImageView();
         imv.setPreserveRatio(true);
         final Label luminance = new Label("Luminance (cd/m^2)");
         final TextField lumTextField = new TextField("0");
         final Label coords = new Label("");
+
         imv.setOnMouseMoved(e -> {
             if (imgDataContainer.getlMatrix() != null) {
                 coords.setText("x: " + (int) Math.floor(e.getX()) + " y: " + (int) Math.floor(e.getY()));
@@ -90,7 +89,7 @@ public class Main extends Application {
             File file = fileChooser.showOpenDialog(primaryStage);
             if (file != null) {
                 try {
-                    imv.setImage(openImg(file, scrollPane));
+                    openImg(file);
 
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -169,10 +168,20 @@ public class Main extends Application {
         settingsBox.getChildren().addAll(fitToWindowCheck, okBtn);
 
         okBtn.setOnAction(e -> {
-            if (fitToWindowCheck.isSelected()) {
-                prop.setProperty("fitToWindow", "true");
-            } else {
-                prop.setProperty("fitToWindow", "false");
+            //if checkbox state same as saved property, do nothing
+            if (fitToWindowCheck.isSelected() != fit) {
+
+                if (fitToWindowCheck.isSelected()) {
+                    prop.setProperty("fitToWindow", "true");
+                    if (this.imgDataContainer.getFullSizedImage() != null) {
+                        refreshImage(true);
+                    }
+                } else {
+                    prop.setProperty("fitToWindow", "false");
+                    if (this.imgDataContainer.getFullSizedImage() != null) {
+                        refreshImage(false);
+                    }
+                }
             }
 
             prop.storeProps();
@@ -210,23 +219,35 @@ public class Main extends Application {
         stage.show();
     }
 
-    private Image openImg(File file, ScrollPane scrollPane) throws IOException {
-        boolean fit = Boolean.parseBoolean(prop.getProperty("fitToWindow"));
+    private void refreshImage(boolean resize) {
 
-        BufferedImage srcImg = ImageIO.read(file);
+        if (resize) {
 
-        if (fit) {
-            int srcWidth = srcImg.getWidth();
-            int srcHeight = srcImg.getHeight();
+            int srcWidth = this.imgDataContainer.getFullSizedImage().getWidth();
+            int srcHeight = this.imgDataContainer.getFullSizedImage().getHeight();
             double aspectRatio = (double) srcWidth / (double) srcHeight;
 
             if (srcHeight > 1080) {
-                srcImg = ImageScaler.rescale(srcImg, (int)(scrollPane.getWidth()*aspectRatio), 1080);
+                this.imgDataContainer.setResizedImg(ImageScaler.rescale(this.imgDataContainer.getFullSizedImage(), (int) (1080 * aspectRatio), 1080));
             }
+            this.imgDataContainer.populateLlabMatrix(true);
+            BufferedImage hueImg = ImageProcessor.constructHueImage(imgDataContainer.getlLabMatrix(), imgDataContainer.getHueImgColors());
+            imv.setImage(SwingFXUtils.toFXImage(hueImg, null));
+
+        } else {
+            this.imgDataContainer.populateLlabMatrix(false);
+            BufferedImage hueImg = ImageProcessor.constructHueImage(imgDataContainer.getlLabMatrix(), imgDataContainer.getHueImgColors());
+            imv.setImage(SwingFXUtils.toFXImage(hueImg, null));
+
         }
-        imgDataContainer.setlLabMatrix(ImageProcessor.constructLlabMatrix(srcImg));
-        BufferedImage hueImg = ImageProcessor.constructHueImage(imgDataContainer.getlLabMatrix(), imgDataContainer.getHueImgColors());
-        return SwingFXUtils.toFXImage(hueImg, null);
+        //refresh luminance matrix if coefficients are set
+            this.imgDataContainer.populateLMatrix();
+    }
+
+    private void openImg(File file) throws IOException {
+        boolean resize = Boolean.parseBoolean(prop.getProperty("fitToWindow"));
+        this.imgDataContainer.setFullSizedImage(ImageIO.read(file));
+        refreshImage(resize);
     }
 
     private HBox createLegend() {
@@ -249,8 +270,8 @@ public class Main extends Application {
 
             Label coloredsquare = new Label("         ");
             coloredsquare.setStyle("-fx-border-style: solid inside;" +
-                                    "-fx-border-width: 1;" +
-                                    "-fx-border-color: black;");
+                    "-fx-border-width: 1;" +
+                    "-fx-border-color: black;");
             coloredsquare.setBackground(new Background(new BackgroundFill(fxColors[i], CornerRadii.EMPTY, Insets.EMPTY)));
 
             legend.getChildren().addAll(coloredsquare, interval);
