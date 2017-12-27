@@ -8,9 +8,9 @@ public class ImageDataContainer {
     private double[][] lLabMatrix;
     private Double aperture;
     private Double exposure;
-    private Color[] hueImgColors = new Color[]{Color.BLACK, new Color(163, 3, 3), new Color(255, 0, 0),
-            new Color(219, 70, 2), new Color(255, 136, 0), new Color(255, 229, 0),
-            new Color(247, 220, 17), Color.WHITE};
+    //default color scale
+    private Color[] hueImgColors = new Color[]{Color.BLACK, new Color(255, 0, 0),
+            new Color(219, 70, 2), new Color(247, 220, 17), Color.WHITE};
     private String luminanceFormula;
 
     public String getLuminanceFormula() {

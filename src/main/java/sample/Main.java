@@ -234,6 +234,7 @@ public class Main extends Application {
         legend.setSpacing(5);
         legend.setPadding(new Insets(5, 0, 0, 0));
         DecimalFormat df = new DecimalFormat("#.0");
+
         java.awt.Color[] awtColors = imgDataContainer.getHueImgColors();
         int colorCount = awtColors.length;
         double intervalSize = (100.f / colorCount);

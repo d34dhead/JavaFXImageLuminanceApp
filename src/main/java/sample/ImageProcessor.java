@@ -5,6 +5,7 @@ import org.mariuszgromada.math.mxparser.*;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.File;
 
 public class ImageProcessor {
     /**
@@ -109,7 +110,7 @@ public class ImageProcessor {
     }
 
     /*This method outputs a matrix of luminance values from a matrix of Llab values and given aperture number and exposure time
-    * Faster than the same method with specified formula*/
+     * Faster than the same method with specified formula*/
     public static double[][] constructLuminanceMatrix(double[][] LlabMatrix, double aperture, double exposure) {
 
         int rows = LlabMatrix.length;
@@ -120,11 +121,19 @@ public class ImageProcessor {
 
         for (int i = 0; i < cols; i++) {
             for (int j = 0; j < rows; j++) {
-                luminanceMatrix[j][i] = (aperture * aperture / exposure) * 0.0373 * Math.exp(0.0307 * LlabMatrix[j][i]);
+                //Llab values <= 20 && >= 80 not taken into account
+                if (LlabMatrix[j][i] <= 20) {
+                    luminanceMatrix[j][i] = 0;
+                } else if (LlabMatrix[j][i] >= 80) {
+                    luminanceMatrix[j][i] = 9999;
+                } else {
+                    luminanceMatrix[j][i] = (aperture * aperture / exposure) * 0.0373 * Math.exp(0.0307 * LlabMatrix[j][i]);
+                }
             }
         }
         return luminanceMatrix;
     }
+
     //
     public static double[][] constructLuminanceMatrix(
             double[][] LlabMatrix, double aperture, double exposure, String expressionString) {
@@ -134,7 +143,7 @@ public class ImageProcessor {
         //dependent argument L
         Argument lightness = new Argument("Llab");
         //expression used to calculate luminance
-        Expression luminanceFormula = new Expression(expressionString, fNumber, exposureTime, lightness );
+        Expression luminanceFormula = new Expression(expressionString, fNumber, exposureTime, lightness);
 
         int rows = LlabMatrix.length;
         int cols = LlabMatrix[0].length;
@@ -149,13 +158,6 @@ public class ImageProcessor {
             }
         }
         return luminanceMatrix;
-    }
-
-    /*Colors not specified, using default values*/
-    public static BufferedImage constructHueImage(double[][] LlabMatrix) {
-        return constructHueImage(LlabMatrix, new Color[]{Color.BLACK, new Color(163, 3, 3), new Color(255, 0, 0),
-                new Color(219, 70, 2), new Color(255, 136, 0), new Color(255, 229, 0),
-                new Color(247, 220, 17), Color.WHITE});
     }
 
     /*This method takes in the given image and outputs an image whose color is based
