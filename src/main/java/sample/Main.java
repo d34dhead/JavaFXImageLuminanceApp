@@ -25,6 +25,7 @@ public class Main extends Application {
     private final ImageDataContainer imgDataContainer = new ImageDataContainer();
     private final PropertiesManager prop = new PropertiesManager();
     private final ImageView imv = new ImageView();
+    private final ImageProcessor processor = imgDataContainer.getProcessor();
     @Override
     public void start(Stage primaryStage) {
 
@@ -133,7 +134,6 @@ public class Main extends Application {
         /*Vbox setup*/
         VBox vertBox = new VBox(10);
         vertBox.setPadding(new Insets(10, 5, 0, 5));
-        //openBtn.prefWidthProperty().bind(vertBox.widthProperty());
         vertBox.getChildren().addAll(exposureLbl, exposureTextField, apertureLbl, apertureTextField,
                 luminance, lumTextField, coords);
         vertBox.setFillWidth(true);
@@ -151,7 +151,6 @@ public class Main extends Application {
 
     }
 
-    //TODO:add refresh functionality, when submiting changes
     private void showGeneralSettingsWindow() {
         boolean fit = Boolean.parseBoolean(prop.getProperty("fitToWindow"));
 
@@ -231,12 +230,12 @@ public class Main extends Application {
                 this.imgDataContainer.setResizedImg(ImageScaler.rescale(this.imgDataContainer.getFullSizedImage(), (int) (1080 * aspectRatio), 1080));
             }
             this.imgDataContainer.populateLlabMatrix(true);
-            BufferedImage hueImg = ImageProcessor.constructHueImage(imgDataContainer.getlLabMatrix(), imgDataContainer.getHueImgColors());
+            BufferedImage hueImg = processor.constructHueImage(imgDataContainer.getlLabMatrix(), imgDataContainer.getHueImgColors());
             imv.setImage(SwingFXUtils.toFXImage(hueImg, null));
 
         } else {
             this.imgDataContainer.populateLlabMatrix(false);
-            BufferedImage hueImg = ImageProcessor.constructHueImage(imgDataContainer.getlLabMatrix(), imgDataContainer.getHueImgColors());
+            BufferedImage hueImg = processor.constructHueImage(imgDataContainer.getlLabMatrix(), imgDataContainer.getHueImgColors());
             imv.setImage(SwingFXUtils.toFXImage(hueImg, null));
 
         }

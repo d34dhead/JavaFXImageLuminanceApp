@@ -11,13 +11,19 @@ public class ImageDataContainer {
     private double[][] lLabMatrix;
     private Double aperture;
     private Double exposure;
+    private ImageProcessor processor = new ImageProcessor();
     //default color scale
     private Color[] hueImgColors = new Color[]{Color.BLACK, new Color(255, 0, 0),
             new Color(219, 70, 2), new Color(247, 220, 17), Color.WHITE};
     private String luminanceFormula;
 
+    public ImageProcessor getProcessor() {
+        return processor;
+    }
+
     public String getLuminanceFormula() {
         return luminanceFormula;
+
     }
 
     public void setLuminanceFormula(String luminanceFormula) {
@@ -26,10 +32,6 @@ public class ImageDataContainer {
 
     public Color[] getHueImgColors() {
         return hueImgColors;
-    }
-
-    public void setHueImgColors(Color[] hueImgColors) {
-        this.hueImgColors = hueImgColors;
     }
 
     public void setAperture(double aperture) {
@@ -42,10 +44,6 @@ public class ImageDataContainer {
 
     public double[][] getlLabMatrix() {
         return lLabMatrix;
-    }
-
-    public void setlLabMatrix(double[][] lLabMatrix) {
-        this.lLabMatrix = lLabMatrix;
     }
 
     public double[][] getlMatrix() {
@@ -64,10 +62,6 @@ public class ImageDataContainer {
         return this.lMatrix[y][x];
     }
 
-    public BufferedImage getResizedImg() {
-        return resizedImg;
-    }
-
     public void setResizedImg(BufferedImage resizedImg) {
         this.resizedImg = resizedImg;
     }
@@ -76,9 +70,9 @@ public class ImageDataContainer {
         if (this.apertureAndExposureSet()) {
             if (this.lLabMatrix != null) {
                 if (this.luminanceFormula == null) {
-                    this.lMatrix = ImageProcessor.constructLuminanceMatrix(this.lLabMatrix, aperture, exposure);
+                    this.lMatrix = processor.constructLuminanceMatrix(this.lLabMatrix, aperture, exposure);
                 } else {
-                    this.lMatrix = ImageProcessor.constructLuminanceMatrix(this.lLabMatrix, aperture, exposure, luminanceFormula);
+                    this.lMatrix = processor.constructLuminanceMatrix(this.lLabMatrix, aperture, exposure, luminanceFormula);
                 }
             }
         }
@@ -88,11 +82,11 @@ public class ImageDataContainer {
 
         if (!resized) {
             if (this.fullSizedImage != null) {
-                this.lLabMatrix = ImageProcessor.constructLlabMatrix(this.fullSizedImage);
+                this.lLabMatrix = processor.constructLlabMatrix(this.fullSizedImage);
             }
         } else {
             if (this.resizedImg != null) {
-                this.lLabMatrix = ImageProcessor.constructLlabMatrix(this.resizedImg);
+                this.lLabMatrix = processor.constructLlabMatrix(this.resizedImg);
             }
         }
     }

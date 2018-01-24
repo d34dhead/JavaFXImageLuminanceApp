@@ -2,7 +2,6 @@ package sample;
 /*Author: Lubomir Nepil*/
 import com.mortennobel.imagescaling.MultiStepRescaleOp;
 
-import java.awt.*;
 import java.awt.image.BufferedImage;
 
 public class ImageScaler {
