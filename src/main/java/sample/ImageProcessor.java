@@ -108,6 +108,29 @@ public class ImageProcessor {
         }
         return luminanceMatrix;
     }
+    //overloaded method with formula coefficients input instead of the whole formula, as it is unlikely the equation itself will change
+    public double[][] constructLuminanceMatrix(double[][] LlabMatrix, double aperture, double exposure, double Acoeff, double Bcoeff) {
+
+        int rows = LlabMatrix.length;
+        int cols = LlabMatrix[0].length;
+
+        //create an empty L matrix of the same size as Llab matrix
+        double[][] luminanceMatrix = new double[rows][cols];
+
+        for (int i = 0; i < cols; i++) {
+            for (int j = 0; j < rows; j++) {
+                //Llab values <= 20 && >= 80 not taken into account
+                if (LlabMatrix[j][i] <= 20) {
+                    luminanceMatrix[j][i] = 0;
+                } else if (LlabMatrix[j][i] >= 80) {
+                    luminanceMatrix[j][i] = 9999;
+                } else {
+                    luminanceMatrix[j][i] = (aperture * aperture / exposure) * Acoeff * Math.exp(Bcoeff * LlabMatrix[j][i]);
+                }
+            }
+        }
+        return luminanceMatrix;
+    }
 
     //Overloaded method with formula input
     public double[][] constructLuminanceMatrix(

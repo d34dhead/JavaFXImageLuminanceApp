@@ -4,7 +4,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 
 /*Author: Lubomir Nepil*/
-public class ImageDataContainer {
+public class ImageDataBuffer {
     private BufferedImage fullSizedImage;
     private BufferedImage resizedImg;
     private double[][] lMatrix;

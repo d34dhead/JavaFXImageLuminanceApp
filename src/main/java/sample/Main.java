@@ -8,7 +8,6 @@ import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.*;
 import javafx.scene.control.*;
-import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
@@ -22,10 +21,10 @@ import java.text.DecimalFormat;
 
 
 public class Main extends Application {
-    private final ImageDataContainer imgDataContainer = new ImageDataContainer();
+    private final ImageDataBuffer imgDataBuffer = new ImageDataBuffer();
     private final PropertiesManager prop = new PropertiesManager();
     private final ImageView imv = new ImageView();
-    private final ImageProcessor processor = imgDataContainer.getProcessor();
+    private final ImageProcessor processor = imgDataBuffer.getProcessor();
     @Override
     public void start(Stage primaryStage) {
 
@@ -72,9 +71,9 @@ public class Main extends Application {
         final Label coords = new Label("");
 
         imv.setOnMouseMoved(e -> {
-            if (imgDataContainer.getlMatrix() != null) {
+            if (imgDataBuffer.getlMatrix() != null) {
                 coords.setText("x: " + (int) Math.floor(e.getX()) + " y: " + (int) Math.floor(e.getY()));
-                lumTextField.setText(String.format("%.2f", imgDataContainer.getPixelLuminance((int) Math.floor(e.getX()), (int) Math.floor(e.getY()))));
+                lumTextField.setText(String.format("%.2f", imgDataBuffer.getPixelLuminance((int) Math.floor(e.getX()), (int) Math.floor(e.getY()))));
             }
         });
 
@@ -111,9 +110,9 @@ public class Main extends Application {
         exposureTextField.setOnAction(e -> {
             String text = exposureTextField.getText();
             if (text.matches("^[+-]?([0-9]*[.])?[0-9]+$")) {
-                this.imgDataContainer.setExposure(Double.parseDouble(text));
-                if (this.imgDataContainer.apertureAndExposureSet()) {
-                    this.imgDataContainer.populateLMatrix();
+                this.imgDataBuffer.setExposure(Double.parseDouble(text));
+                if (this.imgDataBuffer.apertureAndExposureSet()) {
+                    this.imgDataBuffer.populateLMatrix();
                 }
             }
         });
@@ -124,9 +123,9 @@ public class Main extends Application {
         apertureTextField.setOnAction(e -> {
             String text = apertureTextField.getText();
             if (text.matches("^[+-]?([0-9]*[.])?[0-9]+$")) {
-                this.imgDataContainer.setAperture(Double.parseDouble(text));
-                if (this.imgDataContainer.apertureAndExposureSet()) {
-                    this.imgDataContainer.populateLMatrix();
+                this.imgDataBuffer.setAperture(Double.parseDouble(text));
+                if (this.imgDataBuffer.apertureAndExposureSet()) {
+                    this.imgDataBuffer.populateLMatrix();
                 }
             }
         });
@@ -172,12 +171,12 @@ public class Main extends Application {
 
                 if (fitToWindowCheck.isSelected()) {
                     prop.setProperty("fitToWindow", "true");
-                    if (this.imgDataContainer.getFullSizedImage() != null) {
+                    if (this.imgDataBuffer.getFullSizedImage() != null) {
                         refreshImage(true);
                     }
                 } else {
                     prop.setProperty("fitToWindow", "false");
-                    if (this.imgDataContainer.getFullSizedImage() != null) {
+                    if (this.imgDataBuffer.getFullSizedImage() != null) {
                         refreshImage(false);
                     }
                 }
@@ -206,9 +205,9 @@ public class Main extends Application {
         Button submitBtn = new Button("Submit");
         //TODO:add input validation with alert
         submitBtn.setOnAction(e -> {
-            imgDataContainer.setLuminanceFormula(formulaText.getText());
-            if (!(imgDataContainer.getlLabMatrix() == null)) {
-                imgDataContainer.populateLMatrix();
+            imgDataBuffer.setLuminanceFormula(formulaText.getText());
+            if (!(imgDataBuffer.getlLabMatrix() == null)) {
+                imgDataBuffer.populateLMatrix();
             }
             stage.close();
         });
@@ -222,30 +221,30 @@ public class Main extends Application {
 
         if (resize) {
 
-            int srcWidth = this.imgDataContainer.getFullSizedImage().getWidth();
-            int srcHeight = this.imgDataContainer.getFullSizedImage().getHeight();
+            int srcWidth = this.imgDataBuffer.getFullSizedImage().getWidth();
+            int srcHeight = this.imgDataBuffer.getFullSizedImage().getHeight();
             double aspectRatio = (double) srcWidth / (double) srcHeight;
 
             if (srcHeight > 1080) {
-                this.imgDataContainer.setResizedImg(ImageScaler.rescale(this.imgDataContainer.getFullSizedImage(), (int) (1080 * aspectRatio), 1080));
+                this.imgDataBuffer.setResizedImg(ImageScaler.rescale(this.imgDataBuffer.getFullSizedImage(), (int) (1080 * aspectRatio), 1080));
             }
-            this.imgDataContainer.populateLlabMatrix(true);
-            BufferedImage hueImg = processor.constructHueImage(imgDataContainer.getlLabMatrix(), imgDataContainer.getHueImgColors());
+            this.imgDataBuffer.populateLlabMatrix(true);
+            BufferedImage hueImg = processor.constructHueImage(imgDataBuffer.getlLabMatrix(), imgDataBuffer.getHueImgColors());
             imv.setImage(SwingFXUtils.toFXImage(hueImg, null));
 
         } else {
-            this.imgDataContainer.populateLlabMatrix(false);
-            BufferedImage hueImg = processor.constructHueImage(imgDataContainer.getlLabMatrix(), imgDataContainer.getHueImgColors());
+            this.imgDataBuffer.populateLlabMatrix(false);
+            BufferedImage hueImg = processor.constructHueImage(imgDataBuffer.getlLabMatrix(), imgDataBuffer.getHueImgColors());
             imv.setImage(SwingFXUtils.toFXImage(hueImg, null));
 
         }
         //refresh luminance matrix if coefficients are set
-            this.imgDataContainer.populateLMatrix();
+            this.imgDataBuffer.populateLMatrix();
     }
 
     private void openImg(File file) throws IOException {
         boolean resize = Boolean.parseBoolean(prop.getProperty("fitToWindow"));
-        this.imgDataContainer.setFullSizedImage(ImageIO.read(file));
+        this.imgDataBuffer.setFullSizedImage(ImageIO.read(file));
         refreshImage(resize);
     }
 
@@ -255,7 +254,7 @@ public class Main extends Application {
         legend.setPadding(new Insets(5, 0, 0, 0));
         DecimalFormat df = new DecimalFormat("#.0");
 
-        java.awt.Color[] awtColors = imgDataContainer.getHueImgColors();
+        java.awt.Color[] awtColors = imgDataBuffer.getHueImgColors();
         int colorCount = awtColors.length;
         double intervalSize = (100.f / colorCount);
         Color[] fxColors = new Color[colorCount];
