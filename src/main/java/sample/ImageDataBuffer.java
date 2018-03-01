@@ -5,6 +5,7 @@ import java.awt.image.BufferedImage;
 
 /*Author: Lubomir Nepil*/
 public class ImageDataBuffer {
+    private BufferedImage[] images;
     private BufferedImage fullSizedImage;
     private BufferedImage resizedImg;
     private double[][] lMatrix;
@@ -12,6 +13,7 @@ public class ImageDataBuffer {
     private Double aperture;
     private Double exposure;
     private ImageProcessor processor = new ImageProcessor();
+    private ImageMerger merger = new ImageMerger(processor);
     //default color scale
     private Color[] hueImgColors = new Color[]{Color.BLACK, new Color(255, 0, 0),
             new Color(219, 70, 2), new Color(247, 220, 17), Color.WHITE};
@@ -21,7 +23,16 @@ public class ImageDataBuffer {
         return processor;
     }
 
+    public BufferedImage[] getImages() {
+        return images;
+    }
+
+    public void setImages(BufferedImage[] images) {
+        this.images = images;
+    }
+
     public String getLuminanceFormula() {
+
         return luminanceFormula;
 
     }
@@ -80,15 +91,20 @@ public class ImageDataBuffer {
 
     public void populateLlabMatrix(boolean resized) {
 
-        if (!resized) {
-            if (this.fullSizedImage != null) {
-                this.lLabMatrix = processor.constructLlabMatrix(this.fullSizedImage);
+        if(this.images == null) {
+            if (!resized) {
+                if (this.fullSizedImage != null) {
+                    this.lLabMatrix = processor.constructLlabMatrix(this.fullSizedImage);
+                }
+            } else {
+                if (this.resizedImg != null) {
+                    this.lLabMatrix = processor.constructLlabMatrix(this.resizedImg);
+                }
             }
-        } else {
-            if (this.resizedImg != null) {
-                this.lLabMatrix = processor.constructLlabMatrix(this.resizedImg);
-            }
+        }else{
+            this.lLabMatrix = merger.MergeImages(images);
         }
+
     }
 
     public boolean apertureAndExposureSet() {

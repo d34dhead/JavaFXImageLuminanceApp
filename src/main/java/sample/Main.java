@@ -15,9 +15,13 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 import javax.imageio.ImageIO;
+import javax.swing.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 
 public class Main extends Application {
@@ -85,11 +89,14 @@ public class Main extends Application {
 
         /*fileChooser setup*/
         FileChooser fileChooser = new FileChooser();
+        List<String> extensions = Arrays.asList("*.jpg", "*.jpeg", "*.tif", "*.tiff", "*.png", "*.bmp");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image files", extensions));
         openItem.setOnAction(event -> {
-            File file = fileChooser.showOpenDialog(primaryStage);
-            if (file != null) {
+            List<File> files = fileChooser.showOpenMultipleDialog(primaryStage);
+
+            if (files != null) {
                 try {
-                    openImg(file);
+                    openImg(files);
 
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -114,6 +121,11 @@ public class Main extends Application {
                 if (this.imgDataBuffer.apertureAndExposureSet()) {
                     this.imgDataBuffer.populateLMatrix();
                 }
+            }else{
+                Alert invalidNumberAlert = new Alert(Alert.AlertType.ERROR);
+                invalidNumberAlert.setContentText("Enter a valid real number. \n Use '.' as the decimal separator");
+                invalidNumberAlert.setHeaderText("Invalid number");
+                invalidNumberAlert.showAndWait();
             }
         });
 
@@ -172,12 +184,12 @@ public class Main extends Application {
                 if (fitToWindowCheck.isSelected()) {
                     prop.setProperty("fitToWindow", "true");
                     if (this.imgDataBuffer.getFullSizedImage() != null) {
-                        refreshImage(true);
+                        refreshImage();
                     }
                 } else {
                     prop.setProperty("fitToWindow", "false");
                     if (this.imgDataBuffer.getFullSizedImage() != null) {
-                        refreshImage(false);
+                        refreshImage();
                     }
                 }
             }
@@ -217,7 +229,8 @@ public class Main extends Application {
         stage.show();
     }
 
-    private void refreshImage(boolean resize) {
+    private void refreshImage() {
+        boolean resize = Boolean.parseBoolean(prop.getProperty("fitToWindow"));
 
         if (resize) {
 
@@ -228,24 +241,32 @@ public class Main extends Application {
             if (srcHeight > 1080) {
                 this.imgDataBuffer.setResizedImg(ImageScaler.rescale(this.imgDataBuffer.getFullSizedImage(), (int) (1080 * aspectRatio), 1080));
             }
-            this.imgDataBuffer.populateLlabMatrix(true);
-            BufferedImage hueImg = processor.constructHueImage(imgDataBuffer.getlLabMatrix(), imgDataBuffer.getHueImgColors());
-            imv.setImage(SwingFXUtils.toFXImage(hueImg, null));
-
-        } else {
-            this.imgDataBuffer.populateLlabMatrix(false);
-            BufferedImage hueImg = processor.constructHueImage(imgDataBuffer.getlLabMatrix(), imgDataBuffer.getHueImgColors());
-            imv.setImage(SwingFXUtils.toFXImage(hueImg, null));
 
         }
+            this.imgDataBuffer.populateLlabMatrix(resize);
+            BufferedImage hueImg = processor.constructHueImage(imgDataBuffer.getlLabMatrix(), imgDataBuffer.getHueImgColors());
+            imv.setImage(SwingFXUtils.toFXImage(hueImg, null));
+
         //refresh luminance matrix if coefficients are set
             this.imgDataBuffer.populateLMatrix();
+
     }
 
-    private void openImg(File file) throws IOException {
-        boolean resize = Boolean.parseBoolean(prop.getProperty("fitToWindow"));
-        this.imgDataBuffer.setFullSizedImage(ImageIO.read(file));
-        refreshImage(resize);
+    private void openImg(List<File> files) throws IOException {
+        BufferedImage[] images = new BufferedImage[files.size()];
+
+        for(int i = 0; i < files.size(); i++){
+            images[i] = ImageIO.read(files.get(i));
+        }
+
+        if(files.size() == 1){
+            this.imgDataBuffer.setFullSizedImage(images[0]);
+            this.imgDataBuffer.setImages(null);
+        }else{
+            this.imgDataBuffer.setImages(images);
+        }
+
+        refreshImage();
     }
 
     private HBox createLegend() {
