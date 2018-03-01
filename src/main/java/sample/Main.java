@@ -122,16 +122,12 @@ public class Main extends Application {
                     this.imgDataBuffer.populateLMatrix();
                 }
             }else{
-                Alert invalidNumberAlert = new Alert(Alert.AlertType.ERROR);
-                invalidNumberAlert.setContentText("Enter a valid real number. \n Use '.' as the decimal separator");
-                invalidNumberAlert.setHeaderText("Invalid number");
-                invalidNumberAlert.showAndWait();
+                alertInvalidNumber();
             }
         });
 
         Label apertureLbl = new Label("Aperture number");
         TextField apertureTextField = new TextField("");
-
         apertureTextField.setOnAction(e -> {
             String text = apertureTextField.getText();
             if (text.matches("^[+-]?([0-9]*[.])?[0-9]+$")) {
@@ -139,6 +135,8 @@ public class Main extends Application {
                 if (this.imgDataBuffer.apertureAndExposureSet()) {
                     this.imgDataBuffer.populateLMatrix();
                 }
+            }else {
+                alertInvalidNumber();
             }
         });
 
@@ -160,6 +158,13 @@ public class Main extends Application {
         primaryStage.setScene(scene);
         primaryStage.show();
 
+    }
+
+    private void alertInvalidNumber() {
+        Alert invalidNumberAlert = new Alert(Alert.AlertType.ERROR);
+        invalidNumberAlert.setContentText("Enter a valid real number.\nUse . as the decimal separator");
+        invalidNumberAlert.setHeaderText("Invalid number");
+        invalidNumberAlert.showAndWait();
     }
 
     private void showGeneralSettingsWindow() {
