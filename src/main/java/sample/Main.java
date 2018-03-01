@@ -29,6 +29,7 @@ public class Main extends Application {
     private final PropertiesManager prop = new PropertiesManager();
     private final ImageView imv = new ImageView();
     private final ImageProcessor processor = imgDataBuffer.getProcessor();
+
     @Override
     public void start(Stage primaryStage) {
 
@@ -101,13 +102,14 @@ public class Main extends Application {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-
-                //add legend
-                HBox legend = createLegend();
-                legend.setAlignment(Pos.TOP_CENTER);
-                gridpane.add(legend, 0, 1);
-                root.getChildren().remove(gridpane);
-                root.getChildren().add(gridpane);
+                if (imgDataBuffer.getImages() != null || imgDataBuffer.getFullSizedImage() != null) {
+                    //add legend
+                    HBox legend = createLegend();
+                    legend.setAlignment(Pos.TOP_CENTER);
+                    gridpane.add(legend, 0, 1);
+                    root.getChildren().remove(gridpane);
+                    root.getChildren().add(gridpane);
+                }
             }
         });
 
@@ -121,7 +123,7 @@ public class Main extends Application {
                 if (this.imgDataBuffer.apertureAndExposureSet()) {
                     this.imgDataBuffer.populateLMatrix();
                 }
-            }else{
+            } else {
                 alertInvalidNumber();
             }
         });
@@ -135,7 +137,7 @@ public class Main extends Application {
                 if (this.imgDataBuffer.apertureAndExposureSet()) {
                     this.imgDataBuffer.populateLMatrix();
                 }
-            }else {
+            } else {
                 alertInvalidNumber();
             }
         });
@@ -248,30 +250,47 @@ public class Main extends Application {
             }
 
         }
-            this.imgDataBuffer.populateLlabMatrix(resize);
-            BufferedImage hueImg = processor.constructHueImage(imgDataBuffer.getlLabMatrix(), imgDataBuffer.getHueImgColors());
-            imv.setImage(SwingFXUtils.toFXImage(hueImg, null));
+        this.imgDataBuffer.populateLlabMatrix(resize);
+        BufferedImage hueImg = processor.constructHueImage(imgDataBuffer.getlLabMatrix(), imgDataBuffer.getHueImgColors());
+        imv.setImage(SwingFXUtils.toFXImage(hueImg, null));
 
         //refresh luminance matrix if coefficients are set
-            this.imgDataBuffer.populateLMatrix();
+        this.imgDataBuffer.populateLMatrix();
 
     }
 
     private void openImg(List<File> files) throws IOException {
         BufferedImage[] images = new BufferedImage[files.size()];
 
-        for(int i = 0; i < files.size(); i++){
+        for (int i = 0; i < files.size(); i++) {
             images[i] = ImageIO.read(files.get(i));
         }
 
-        if(files.size() == 1){
+        if (files.size() == 1) {
             this.imgDataBuffer.setFullSizedImage(images[0]);
             this.imgDataBuffer.setImages(null);
-        }else{
+        } else if (imgDimensionsEqual(images)) {
             this.imgDataBuffer.setImages(images);
+        } else {
+            Alert sizeAlert = new Alert(Alert.AlertType.ERROR);
+            sizeAlert.setHeaderText("Image dimensions do not match");
+            sizeAlert.setContentText("When loading multiple images, the dimensions of all images must be identical");
+            sizeAlert.showAndWait();
+            return;
         }
 
         refreshImage();
+
+    }
+
+    private boolean imgDimensionsEqual(BufferedImage[] images) {
+        boolean allEqual = true;
+        for (int i = 0; i < images.length - 1; i++) {
+            if (images[i].getWidth() != images[i + 1].getWidth() || images[i].getHeight() != images[i + 1].getHeight()) {
+                allEqual = false;
+            }
+        }
+        return allEqual;
     }
 
     private HBox createLegend() {

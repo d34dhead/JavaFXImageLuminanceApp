@@ -101,7 +101,7 @@ public class ImageDataBuffer {
                     this.lLabMatrix = processor.constructLlabMatrix(this.resizedImg);
                 }
             }
-        }else{
+        } else {
             this.lLabMatrix = merger.MergeImages(images);
         }
 
