@@ -36,6 +36,7 @@ public class Main extends Application {
         primaryStage.setTitle("Luminance Calculator");
         Group root = new Group();
         Scene scene = new Scene(root, 1200, 1000, Color.WHITE);
+
         //menu setup
         MenuBar menu = new MenuBar();
         menu.setBackground(new Background(new BackgroundFill(Color.LIGHTGREY, null, null)));
@@ -43,11 +44,13 @@ public class Main extends Application {
         MenuItem openItem = new MenuItem("Open...");
         menuFile.getItems().add(openItem);
         Menu menuSettings = new Menu("Settings");
-        MenuItem formulaItem = new MenuItem("Insert formula...");
+        MenuItem formulaItem = new MenuItem("Change formula...");
         MenuItem generalSettingsItem = new MenuItem("General settings...");
-        menuSettings.getItems().addAll(formulaItem, generalSettingsItem);
+        MenuItem coefficientsItem = new MenuItem("Change coefficients...");
+        menuSettings.getItems().addAll(coefficientsItem, formulaItem, generalSettingsItem);
         menu.getMenus().addAll(menuFile, menuSettings);
 
+        coefficientsItem.setOnAction(e -> showCoefficientsWindow());
         formulaItem.setOnAction(e -> showFormulaWindow());
         generalSettingsItem.setOnAction(e -> showGeneralSettingsWindow());
 
@@ -56,14 +59,12 @@ public class Main extends Application {
         gridpane.setPadding(new Insets(10, 10, 30, 10));
         ColumnConstraints col1 = new ColumnConstraints();
         ColumnConstraints col2 = new ColumnConstraints();
-        col1.setPercentWidth(85);
-        col2.setPercentWidth(15);
+        col1.setPercentWidth(90);
+        col2.setPercentWidth(10);
         gridpane.getColumnConstraints().addAll(col1, col2);
         RowConstraints row1 = new RowConstraints();
-        RowConstraints row2 = new RowConstraints();
-        row1.setPercentHeight(93);
-        row2.setPercentHeight(7);
-        gridpane.getRowConstraints().addAll(row1, row2);
+        row1.setPercentHeight(100);
+        gridpane.getRowConstraints().addAll(row1);
         gridpane.gridLinesVisibleProperty().setValue(true);
         gridpane.prefHeightProperty().bind(scene.heightProperty());
         gridpane.prefWidthProperty().bind(scene.widthProperty());
@@ -88,30 +89,7 @@ public class Main extends Application {
         scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
 
-        /*fileChooser setup*/
-        FileChooser fileChooser = new FileChooser();
-        List<String> extensions = Arrays.asList("*.jpg", "*.jpeg", "*.tif", "*.tiff", "*.png", "*.bmp");
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image files", extensions));
-        openItem.setOnAction(event -> {
-            List<File> files = fileChooser.showOpenMultipleDialog(primaryStage);
 
-            if (files != null) {
-                try {
-                    openImg(files);
-
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                if (imgDataBuffer.getImages() != null || imgDataBuffer.getFullSizedImage() != null) {
-                    //add legend
-                    HBox legend = createLegend();
-                    legend.setAlignment(Pos.TOP_CENTER);
-                    gridpane.add(legend, 0, 1);
-                    root.getChildren().remove(gridpane);
-                    root.getChildren().add(gridpane);
-                }
-            }
-        });
 
         /*textbox setup*/
         Label exposureLbl = new Label("Exposure time (seconds)");
@@ -150,6 +128,30 @@ public class Main extends Application {
         vertBox.setFillWidth(true);
         vertBox.maxHeightProperty().bind(gridpane.maxHeightProperty());
 
+        /*fileChooser setup*/
+        FileChooser fileChooser = new FileChooser();
+        List<String> extensions = Arrays.asList("*.jpg", "*.jpeg", "*.tif", "*.tiff", "*.png", "*.bmp");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image files", extensions));
+        openItem.setOnAction(event -> {
+            List<File> files = fileChooser.showOpenMultipleDialog(primaryStage);
+
+            if (files != null) {
+                try {
+                    openImg(files);
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                if (imgDataBuffer.getImages() != null || imgDataBuffer.getFullSizedImage() != null) {
+                    //add legend
+                    VBox legend = createLegend();
+                    vertBox.getChildren().add(legend);
+                    root.getChildren().remove(gridpane);
+                    root.getChildren().add(gridpane);
+                }
+            }
+        });
+
         /*populate grid*/
         gridpane.add(scrollPane, 0, 0);
         gridpane.add(vertBox, 1, 0);
@@ -159,14 +161,54 @@ public class Main extends Application {
         primaryStage.setResizable(true);
         primaryStage.setScene(scene);
         primaryStage.show();
-
     }
+
 
     private void alertInvalidNumber() {
         Alert invalidNumberAlert = new Alert(Alert.AlertType.ERROR);
         invalidNumberAlert.setContentText("Enter a valid real number.\nUse . as the decimal separator");
         invalidNumberAlert.setHeaderText("Invalid number");
         invalidNumberAlert.showAndWait();
+    }
+
+    private void showCoefficientsWindow() {
+        Stage stage = new Stage();
+        VBox vBox = new VBox();
+        vBox.setPadding(new Insets(15));
+        vBox.setAlignment(Pos.CENTER);
+
+        Label label = new Label("The default formula for Luminance calculations is as follows:\n" +
+                "L = (F^2/t) * A * exp(B * Llab)\nL ... luminance[cd * m^(-2)]\nF ... aperture number[-]\nt ... exposure[s]\nLlab ... L coordinate in Lab color system[-]" +
+                "\nA and B are real number coefficients.\n");
+        label.setWrapText(false);
+        HBox aHBox = new HBox();
+        HBox bHBox = new HBox();
+        Label aLbl = new Label("Coefficient A:");
+        Label bLbl = new Label("Coefficient B:");
+        TextField coeffA = new TextField(prop.getProperty("coefficientA"));
+        TextField coeffB = new TextField(prop.getProperty("coefficientB"));
+        Button submitBtn = new Button("Submit");
+
+        submitBtn.setOnAction(e -> {
+            if (coeffA.getText().matches("^[+-]?([0-9]*[.])?[0-9]+$") && coeffB.getText().matches("^[+-]?([0-9]*[.])?[0-9]+$")) {
+                prop.setProperty("coefficientA", coeffA.getText());
+                prop.setProperty("coefficientB", coeffB.getText());
+                prop.storeProps();
+                if (!(imgDataBuffer.getlLabMatrix() == null)) {
+                    imgDataBuffer.populateLMatrix();
+                }
+                stage.close();
+            }else{
+                alertInvalidNumber();
+            }
+        });
+
+        aHBox.getChildren().addAll(aLbl, coeffA);
+        bHBox.getChildren().addAll(bLbl, coeffB);
+        vBox.getChildren().addAll(label, aHBox, bHBox, submitBtn);
+        Scene scene = new Scene(vBox, 350, 450);
+        stage.setScene(scene);
+        stage.show();
     }
 
     private void showGeneralSettingsWindow() {
@@ -240,7 +282,6 @@ public class Main extends Application {
         boolean resize = Boolean.parseBoolean(prop.getProperty("fitToWindow"));
 
         if (resize) {
-
             int srcWidth = this.imgDataBuffer.getFullSizedImage().getWidth();
             int srcHeight = this.imgDataBuffer.getFullSizedImage().getHeight();
             double aspectRatio = (double) srcWidth / (double) srcHeight;
@@ -248,7 +289,6 @@ public class Main extends Application {
             if (srcHeight > 1080) {
                 this.imgDataBuffer.setResizedImg(ImageScaler.rescale(this.imgDataBuffer.getFullSizedImage(), (int) (1080 * aspectRatio), 1080));
             }
-
         }
         this.imgDataBuffer.populateLlabMatrix(resize);
         BufferedImage hueImg = processor.constructHueImage(imgDataBuffer.getlLabMatrix(), imgDataBuffer.getHueImgColors());
@@ -293,10 +333,10 @@ public class Main extends Application {
         return allEqual;
     }
 
-    private HBox createLegend() {
-        HBox legend = new HBox();
+    private VBox createLegend() {
+        VBox legend = new VBox();
         legend.setSpacing(5);
-        legend.setPadding(new Insets(5, 0, 0, 0));
+        legend.setPadding(new Insets(0, 0, 0, 0));
         DecimalFormat df = new DecimalFormat("#.0");
 
         java.awt.Color[] awtColors = imgDataBuffer.getHueImgColors();
@@ -309,7 +349,7 @@ public class Main extends Application {
             fxColors[i] = Color.rgb(awtColor.getRed(), awtColor.getGreen(), awtColor.getBlue());
 
             Label interval = new Label("<" + df.format(i * intervalSize) + ", " + df.format((i + 1) * intervalSize) + ")");
-            interval.setStyle("-fx-font: italic bold 18px arial, serif ");
+            interval.setStyle("-fx-font: bold 18px arial, serif ");
 
             Label coloredsquare = new Label("         ");
             coloredsquare.setStyle("-fx-border-style: solid inside;" +
@@ -317,8 +357,7 @@ public class Main extends Application {
                     "-fx-border-color: black;");
             coloredsquare.setBackground(new Background(new BackgroundFill(fxColors[i], CornerRadii.EMPTY, Insets.EMPTY)));
 
-            legend.getChildren().addAll(coloredsquare, interval);
-
+            legend.getChildren().addAll(new HBox(coloredsquare, interval));
         }
         return legend;
     }

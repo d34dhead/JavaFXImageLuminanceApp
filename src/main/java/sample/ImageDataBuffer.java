@@ -5,6 +5,7 @@ import java.awt.image.BufferedImage;
 
 /*Author: Lubomir Nepil*/
 public class ImageDataBuffer {
+    private PropertiesManager props;
     private BufferedImage[] images;
     private BufferedImage fullSizedImage;
     private BufferedImage resizedImg;
@@ -31,11 +32,6 @@ public class ImageDataBuffer {
         this.images = images;
     }
 
-    public String getLuminanceFormula() {
-
-        return luminanceFormula;
-
-    }
 
     public void setLuminanceFormula(String luminanceFormula) {
         this.luminanceFormula = luminanceFormula;
@@ -78,15 +74,25 @@ public class ImageDataBuffer {
     }
 
     public void populateLMatrix() {
+        props = new PropertiesManager();
         if (this.apertureAndExposureSet()) {
             if (this.lLabMatrix != null) {
                 if (this.luminanceFormula == null) {
-                    this.lMatrix = processor.constructLuminanceMatrix(this.lLabMatrix, aperture, exposure);
-                } else {
+                    if(props.containsKey("coefficientA") && props.containsKey("coefficientB")) {
+                        double coeffA = Double.parseDouble(props.getProperty("coefficientA"));
+                        double coeffB = Double.parseDouble(props.getProperty("coefficientB"));
+                        System.out.println("A, B : " + coeffA + ", " + coeffB);
+                        this.lMatrix = processor.constructLuminanceMatrix(this.lLabMatrix, aperture,
+                                exposure, coeffA, coeffB);
+                    }else {
+                        this.lMatrix = processor.constructLuminanceMatrix(this.lLabMatrix, aperture, exposure);
+                    }
+                }else{
                     this.lMatrix = processor.constructLuminanceMatrix(this.lLabMatrix, aperture, exposure, luminanceFormula);
                 }
             }
         }
+        props = null;
     }
 
     public void populateLlabMatrix(boolean resized) {
