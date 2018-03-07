@@ -6,8 +6,9 @@ import org.mariuszgromada.math.mxparser.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.util.concurrent.RecursiveAction;
 
-public class ImageProcessor {
+public class ImageProcessor{
 
     private static double eps = 0.008856;
     private static double k = 903.3;
@@ -184,8 +185,6 @@ public class ImageProcessor {
                 hueImg.setRGB(i, j, color.getRGB());
             }
         }
-
         return hueImg;
     }
-
 }

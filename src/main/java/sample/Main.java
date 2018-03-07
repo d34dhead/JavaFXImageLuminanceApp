@@ -15,11 +15,9 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 import javax.imageio.ImageIO;
-import javax.swing.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -335,29 +333,45 @@ public class Main extends Application {
 
     private VBox createLegend() {
         VBox legend = new VBox();
-        legend.setSpacing(5);
-        legend.setPadding(new Insets(0, 0, 0, 0));
-        DecimalFormat df = new DecimalFormat("#.0");
+        legend.setStyle("-fx-border-width: 1px;"
+                        + "-fx-border-color: black;"
+                        + "-fx-border-line: solid;"
+                        + "-fx-padding: 5px, 5px, 5px, 5px;"
+                        + "-fx-spacing: 5px;"
+        );
+        legend.setMaxWidth(Double.MAX_VALUE);
+        legend.setMaxHeight(Double.MAX_VALUE);
+        DecimalFormat df = new DecimalFormat("#");
 
         java.awt.Color[] awtColors = imgDataBuffer.getHueImgColors();
         int colorCount = awtColors.length;
         double intervalSize = (100.f / colorCount);
         Color[] fxColors = new Color[colorCount];
 
+        Label titleL = new Label("Lightness");
+        titleL.setStyle("-fx-alignment: center;");
+        legend.getChildren().add(titleL);
         for (int i = 0; i < colorCount; i++) {
             java.awt.Color awtColor = awtColors[i];
             fxColors[i] = Color.rgb(awtColor.getRed(), awtColor.getGreen(), awtColor.getBlue());
 
-            Label interval = new Label("<" + df.format(i * intervalSize) + ", " + df.format((i + 1) * intervalSize) + ")");
-            interval.setStyle("-fx-font: bold 18px arial, serif ");
+            Label interval = new Label(df.format(i * intervalSize));
+            interval.setMaxWidth(Double.MAX_VALUE);
+            interval.setStyle("-fx-font: bold 15px arial, serif;"
+                    + "-fx-padding: 0 0 0 10px;"
+                    + "-fx-text-align: center;"
+                    + "-fx-spacing: 10px");
 
             Label coloredsquare = new Label("         ");
             coloredsquare.setStyle("-fx-border-style: solid inside;" +
                     "-fx-border-width: 1;" +
-                    "-fx-border-color: black;");
+                    "-fx-border-color: black;"
+                    + "-fx-spacing: 10px");
             coloredsquare.setBackground(new Background(new BackgroundFill(fxColors[i], CornerRadii.EMPTY, Insets.EMPTY)));
+            HBox legendLine = new HBox(coloredsquare, interval);
+            legendLine.setStyle("-fx-alignment: center;");
 
-            legend.getChildren().addAll(new HBox(coloredsquare, interval));
+            legend.getChildren().add(legendLine);
         }
         return legend;
     }
