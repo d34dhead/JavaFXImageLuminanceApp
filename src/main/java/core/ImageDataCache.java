@@ -2,9 +2,10 @@ package core;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.util.concurrent.ForkJoinPool;
 
 /*Author: Lubomir Nepil*/
-public class ImageDataBuffer {
+public class ImageDataCache {
     private PropertiesManager props;
     private BufferedImage[] images;
     private BufferedImage fullSizedImage;
@@ -15,6 +16,8 @@ public class ImageDataBuffer {
     private Double exposure;
     private ImageProcessor processor = new ImageProcessor();
     private ImageMerger merger = new ImageMerger(processor);
+    private ForkConstructLlabMatrix fork;
+    private ForkJoinPool pool;
     //default color scale
     private Color[] hueImgColors = new Color[]{Color.BLACK, new Color(255, 0, 0),
             new Color(219, 70, 2), new Color(247, 220, 17), Color.WHITE};
@@ -81,7 +84,6 @@ public class ImageDataBuffer {
                     if(props.containsKey("coefficientA") && props.containsKey("coefficientB")) {
                         double coeffA = Double.parseDouble(props.getProperty("coefficientA"));
                         double coeffB = Double.parseDouble(props.getProperty("coefficientB"));
-                        System.out.println("A, B : " + coeffA + ", " + coeffB);
                         this.lMatrix = processor.constructLuminanceMatrix(this.lLabMatrix, aperture,
                                 exposure, coeffA, coeffB);
                     }else {
@@ -96,21 +98,23 @@ public class ImageDataBuffer {
     }
 
     public void populateLlabMatrix(boolean resized) {
-
+        this.pool = new ForkJoinPool();
         if(this.images == null) {
             if (!resized) {
                 if (this.fullSizedImage != null) {
-                    this.lLabMatrix = processor.constructLlabMatrix(this.fullSizedImage);
+                    this.fork = new ForkConstructLlabMatrix(this.processor, this.fullSizedImage);
+                    this.lLabMatrix = this.pool.invoke(this.fork);
                 }
             } else {
                 if (this.resizedImg != null) {
-                    this.lLabMatrix = processor.constructLlabMatrix(this.resizedImg);
+                    this.fork = new ForkConstructLlabMatrix(this.processor, this.resizedImg);
+                    this.lLabMatrix = this.pool.invoke(this.fork);
                 }
             }
         } else {
             this.lLabMatrix = merger.MergeImages(images);
         }
-
+    this.fork = null;
     }
 
     public boolean apertureAndExposureSet() {

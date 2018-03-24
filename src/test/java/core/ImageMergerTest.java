@@ -1,7 +1,5 @@
-package sample;
+package core;
 
-import core.ImageMerger;
-import core.ImageProcessor;
 import org.junit.Before;
 import org.junit.Test;
 

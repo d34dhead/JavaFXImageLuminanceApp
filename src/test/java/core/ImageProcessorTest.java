@@ -1,6 +1,5 @@
-package sample;
+package core;
 
-import core.ImageProcessor;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -22,7 +21,7 @@ public class ImageProcessorTest {
     @Before
     public void setUp() throws Exception {
         processor = new ImageProcessor();
-        srcImg = ImageIO.read(new File("brooke-lark-391764.jpg"));
+        srcImg = ImageIO.read(new File("3694x5596.jpg"));
         testColors = new Color[]{new Color(120,100,180), new Color( 200, 120, 50 )
                 , new Color( 100, 120, 50 ), new Color( 120, 250, 180 ), new Color( 5, 80, 140 )};
         expectedYs = new double[]{0.1640, 0.2595, 0.1637, 0.7566, 0.0766};

@@ -23,10 +23,11 @@ import java.util.List;
 
 
 public class Main extends Application {
-    private final ImageDataBuffer imgDataBuffer = new ImageDataBuffer();
+    private final ImageDataCache imgDataCache = new ImageDataCache();
     private final PropertiesManager prop = new PropertiesManager();
     private final ImageView imv = new ImageView();
-    private final ImageProcessor processor = imgDataBuffer.getProcessor();
+    private final ImageProcessor processor = imgDataCache.getProcessor();
+    private boolean legendCreatedFlag = false;
 
     @Override
     public void start(Stage primaryStage) {
@@ -75,9 +76,9 @@ public class Main extends Application {
         final Label coords = new Label("");
 
         imv.setOnMouseMoved(e -> {
-            if (imgDataBuffer.getlMatrix() != null) {
+            if (imgDataCache.getlMatrix() != null) {
                 coords.setText("x: " + (int) Math.floor(e.getX()) + " y: " + (int) Math.floor(e.getY()));
-                lumTextField.setText(String.format("%.2f", imgDataBuffer.getPixelLuminance((int) Math.floor(e.getX()), (int) Math.floor(e.getY()))));
+                lumTextField.setText(String.format("%.2f", imgDataCache.getPixelLuminance((int) Math.floor(e.getX()), (int) Math.floor(e.getY()))));
             }
         });
 
@@ -95,9 +96,9 @@ public class Main extends Application {
         exposureTextField.setOnAction(e -> {
             String text = exposureTextField.getText();
             if (text.matches("^[+-]?([0-9]*[.])?[0-9]+$")) {
-                this.imgDataBuffer.setExposure(Double.parseDouble(text));
-                if (this.imgDataBuffer.apertureAndExposureSet()) {
-                    this.imgDataBuffer.populateLMatrix();
+                this.imgDataCache.setExposure(Double.parseDouble(text));
+                if (this.imgDataCache.apertureAndExposureSet()) {
+                    this.imgDataCache.populateLMatrix();
                 }
             } else {
                 alertInvalidNumber();
@@ -109,9 +110,9 @@ public class Main extends Application {
         apertureTextField.setOnAction(e -> {
             String text = apertureTextField.getText();
             if (text.matches("^[+-]?([0-9]*[.])?[0-9]+$")) {
-                this.imgDataBuffer.setAperture(Double.parseDouble(text));
-                if (this.imgDataBuffer.apertureAndExposureSet()) {
-                    this.imgDataBuffer.populateLMatrix();
+                this.imgDataCache.setAperture(Double.parseDouble(text));
+                if (this.imgDataCache.apertureAndExposureSet()) {
+                    this.imgDataCache.populateLMatrix();
                 }
             } else {
                 alertInvalidNumber();
@@ -140,7 +141,7 @@ public class Main extends Application {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                if (imgDataBuffer.getImages() != null || imgDataBuffer.getFullSizedImage() != null) {
+                if ((imgDataCache.getImages() != null || imgDataCache.getFullSizedImage() != null) && !legendCreatedFlag) {
                     //add legend
                     VBox legend = createLegend();
                     vertBox.getChildren().add(legend);
@@ -192,8 +193,8 @@ public class Main extends Application {
                 prop.setProperty("coefficientA", coeffA.getText());
                 prop.setProperty("coefficientB", coeffB.getText());
                 prop.storeProps();
-                if (!(imgDataBuffer.getlLabMatrix() == null)) {
-                    imgDataBuffer.populateLMatrix();
+                if (!(imgDataCache.getlLabMatrix() == null)) {
+                    imgDataCache.populateLMatrix();
                 }
                 stage.close();
             }else{
@@ -230,12 +231,12 @@ public class Main extends Application {
 
                 if (fitToWindowCheck.isSelected()) {
                     prop.setProperty("fitToWindow", "true");
-                    if (this.imgDataBuffer.getFullSizedImage() != null) {
+                    if (this.imgDataCache.getFullSizedImage() != null) {
                         refreshImage();
                     }
                 } else {
                     prop.setProperty("fitToWindow", "false");
-                    if (this.imgDataBuffer.getFullSizedImage() != null) {
+                    if (this.imgDataCache.getFullSizedImage() != null) {
                         refreshImage();
                     }
                 }
@@ -264,9 +265,9 @@ public class Main extends Application {
         Button submitBtn = new Button("Submit");
         //TODO:add input validation with alert
         submitBtn.setOnAction(e -> {
-            imgDataBuffer.setLuminanceFormula(formulaText.getText());
-            if (!(imgDataBuffer.getlLabMatrix() == null)) {
-                imgDataBuffer.populateLMatrix();
+            imgDataCache.setLuminanceFormula(formulaText.getText());
+            if (!(imgDataCache.getlLabMatrix() == null)) {
+                imgDataCache.populateLMatrix();
             }
             stage.close();
         });
@@ -280,20 +281,20 @@ public class Main extends Application {
         boolean resize = Boolean.parseBoolean(prop.getProperty("fitToWindow"));
 
         if (resize) {
-            int srcWidth = this.imgDataBuffer.getFullSizedImage().getWidth();
-            int srcHeight = this.imgDataBuffer.getFullSizedImage().getHeight();
+            int srcWidth = this.imgDataCache.getFullSizedImage().getWidth();
+            int srcHeight = this.imgDataCache.getFullSizedImage().getHeight();
             double aspectRatio = (double) srcWidth / (double) srcHeight;
 
             if (srcHeight > 1080) {
-                this.imgDataBuffer.setResizedImg(ImageScaler.rescale(this.imgDataBuffer.getFullSizedImage(), (int) (1080 * aspectRatio), 1080));
+                this.imgDataCache.setResizedImg(ImageScaler.rescale(this.imgDataCache.getFullSizedImage(), (int) (1080 * aspectRatio), 1080));
             }
         }
-        this.imgDataBuffer.populateLlabMatrix(resize);
-        BufferedImage hueImg = processor.constructHueImage(imgDataBuffer.getlLabMatrix(), imgDataBuffer.getHueImgColors());
+        this.imgDataCache.populateLlabMatrix(resize);
+        BufferedImage hueImg = processor.constructHueImage(imgDataCache.getlLabMatrix(), imgDataCache.getHueImgColors());
         imv.setImage(SwingFXUtils.toFXImage(hueImg, null));
 
         //refresh luminance matrix if coefficients are set
-        this.imgDataBuffer.populateLMatrix();
+        this.imgDataCache.populateLMatrix();
 
     }
 
@@ -305,10 +306,10 @@ public class Main extends Application {
         }
 
         if (files.size() == 1) {
-            this.imgDataBuffer.setFullSizedImage(images[0]);
-            this.imgDataBuffer.setImages(null);
+            this.imgDataCache.setFullSizedImage(images[0]);
+            this.imgDataCache.setImages(null);
         } else if (imgDimensionsEqual(images)) {
-            this.imgDataBuffer.setImages(images);
+            this.imgDataCache.setImages(images);
         } else {
             Alert sizeAlert = new Alert(Alert.AlertType.ERROR);
             sizeAlert.setHeaderText("Image dimensions do not match");
@@ -343,7 +344,7 @@ public class Main extends Application {
         legend.setMaxHeight(Double.MAX_VALUE);
         DecimalFormat df = new DecimalFormat("#");
 
-        java.awt.Color[] awtColors = imgDataBuffer.getHueImgColors();
+        java.awt.Color[] awtColors = imgDataCache.getHueImgColors();
         int colorCount = awtColors.length;
         double intervalSize = (100.f / colorCount);
         Color[] fxColors = new Color[colorCount];
@@ -351,6 +352,7 @@ public class Main extends Application {
         Label titleL = new Label("Lightness");
         titleL.setStyle("-fx-alignment: center;");
         legend.getChildren().add(titleL);
+
         for (int i = 0; i < colorCount; i++) {
             java.awt.Color awtColor = awtColors[i];
             fxColors[i] = Color.rgb(awtColor.getRed(), awtColor.getGreen(), awtColor.getBlue());
@@ -373,6 +375,7 @@ public class Main extends Application {
 
             legend.getChildren().add(legendLine);
         }
+        this.legendCreatedFlag = true;
         return legend;
     }
 

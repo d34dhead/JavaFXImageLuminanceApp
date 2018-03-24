@@ -1,7 +1,5 @@
-package sample;
+package core;
 
-import core.ForkConstructLlabMatrix;
-import core.ImageProcessor;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -24,12 +22,12 @@ public class ForkConstructLlabMatrixTest {
     public void setUp() throws Exception {
         processor = new ImageProcessor();
         pool = new ForkJoinPool();
-        srcImg = ImageIO.read(new File("brooke-lark-391764.jpg"));
+        srcImg = ImageIO.read(new File("5692x5594.jpg"));
         fork = new ForkConstructLlabMatrix(processor, srcImg);
-        long starttime = System.nanoTime();
+        //long starttime = System.nanoTime();
         refLlabMatrix = processor.constructLlabMatrix(srcImg);
-        long timeElapsed = System.nanoTime() - starttime;
-        System.out.println("Time elapsed single threaded: " + timeElapsed);
+        //long timeElapsed = System.nanoTime() - starttime;
+        //System.out.println("Time elapsed single threaded: " + timeElapsed);
     }
 
     @Test
@@ -44,16 +42,14 @@ public class ForkConstructLlabMatrixTest {
 
     @Test
     public void compute() {
-        long starttime = System.nanoTime();
+        //long starttime = System.nanoTime();
         pool.execute(fork);
         double[][] llabMatrix = fork.join();
-        long timeElapsed = System.nanoTime() - starttime;
-        System.out.println("Time elapsed multithreaded: " + timeElapsed);
+        //long timeElapsed = System.nanoTime() - starttime;
+        //System.out.println("Time elapsed multithreaded: " + timeElapsed);
         assertNotNull(llabMatrix);
         assertEquals(srcImg.getWidth(), llabMatrix[0].length);
         assertEquals(srcImg.getHeight(), llabMatrix.length);
-        int count;
-
 
         for (int i = 0; i < srcImg.getWidth(); i++) {
             for (int j = 0; j < srcImg.getHeight(); j++) {
