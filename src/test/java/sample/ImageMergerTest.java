@@ -1,6 +1,7 @@
 package sample;
 
-import org.junit.After;
+import core.ImageMerger;
+import core.ImageProcessor;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -11,24 +12,24 @@ import static org.junit.Assert.*;
 
 public class ImageMergerTest {
 
-    ImageMerger merger;
-    ArrayList<double[][]> invalidPixelTestMatrices;
-    ArrayList<double[][]> mergeTestMatrices;
-    BufferedImage[] images;
-    double[][] llabMatrix;
+    private ImageMerger merger;
+    private ArrayList<double[][]> invalidPixelTestMatrices;
+    private ArrayList<double[][]> mergeTestMatrices;
+    private BufferedImage[] images;
+    private double[][] llabMatrix;
 
     @Before
     public void setUp() throws Exception {
         merger = new ImageMerger(new ImageProcessor());
         llabMatrix = new double[][]{{50, 50, 50}, {5, 6, 80}, {90, 80, 50}};
 
-        invalidPixelTestMatrices = new ArrayList<double[][]>();
+        invalidPixelTestMatrices = new ArrayList<>();
 
         for(int i = 0; i < 10 ; i++){
             invalidPixelTestMatrices.add(new double[][]{{50 * i, 50, 50}, {5, 6, 80}, {90, 70, 50}});
         }
 
-        mergeTestMatrices = new ArrayList<double[][]>();
+        mergeTestMatrices = new ArrayList<>();
         mergeTestMatrices.add(new double[][]{{50, 0, 80, 90},{55, 66, 79, 40},{80, 85, 40, 5}});
         mergeTestMatrices.add(new double[][]{{50, 55, 13, 60},{55, 12, 85, 40},{80, 55, 40, 5}});
         mergeTestMatrices.add(new double[][]{{0, 0, 80, 90},{20, 77, 79, 40},{80, 85, 40, 5}});

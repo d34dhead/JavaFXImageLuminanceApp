@@ -1,8 +1,6 @@
-package sample;
+package core;
 
 import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferDouble;
-import java.nio.Buffer;
 import java.util.ArrayList;
 
 //1. store multiple images in an array
@@ -19,7 +17,7 @@ public class ImageMerger {
     }
 
     public double[][] MergeImages(BufferedImage[] images) {
-        ArrayList llabMatrices = new ArrayList<double[][]>();
+        ArrayList<double[][]> llabMatrices = new ArrayList<>();
         for (BufferedImage img : images) {
             llabMatrices.add(imgProcessor.constructLlabMatrix(img));
         }
@@ -71,8 +69,7 @@ public class ImageMerger {
     }
 
     private boolean validLValue(double value){
-        if(value <= 20 || value >= 80) return false;
-        return true;
+        return !(value <= 20) && !(value >= 80);
     }
 
     public int countInvalidPixels(double[][] matrix){

@@ -1,5 +1,6 @@
 package sample;
 
+import core.ImageProcessor;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -70,10 +71,10 @@ public class ImageProcessorTest {
         assertEquals(srcImg.getHeight(), LlabMatrix.length);
         assertEquals(srcImg.getWidth(), LlabMatrix[0].length);
 
-        for(int i = 10; i > 1; i--) {
-            int srcHeight = srcImg.getHeight();
-            int srcWidth = srcImg.getWidth();
-            assertEquals(processor.convertPixelRgbToLab(srcImg.getRGB(srcWidth/i, srcHeight/i)), LlabMatrix[srcHeight/i][srcWidth/i], 0.01);
+        for (int i = 0; i < srcImg.getWidth(); i++) {
+            for (int j = 0; j < srcImg.getHeight(); j++) {
+                assertEquals(processor.convertPixelRgbToLab(srcImg.getRGB(i, j)), LlabMatrix[j][i], .1);
+            }
         }
     }
 
@@ -88,4 +89,17 @@ public class ImageProcessorTest {
 
     }
 
+    @Test
+    public void constructLlabMatrix1() {
+        double[][] LlabMatrix = processor.constructLlabMatrix(srcImg,new double[srcImg.getHeight()][srcImg.getWidth()], 0, srcImg.getWidth(), 0, srcImg.getHeight());
+        assertNotNull(LlabMatrix);
+        assertEquals(srcImg.getHeight(), LlabMatrix.length);
+        assertEquals(srcImg.getWidth(), LlabMatrix[0].length);
+
+        for (int i = 0; i < srcImg.getWidth(); i++) {
+            for (int j = 0; j < srcImg.getHeight(); j++) {
+                assertEquals(processor.convertPixelRgbToLab(srcImg.getRGB(i, j)), LlabMatrix[j][i], .1);
+            }
+        }
+    }
 }

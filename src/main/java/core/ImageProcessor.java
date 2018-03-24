@@ -1,4 +1,4 @@
-package sample;
+package core;
         /*Author: Lubomir Nepil*/
 
 import org.mariuszgromada.math.mxparser.*;

@@ -1,10 +1,7 @@
-package sample;
+package core;
 
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.concurrent.ForkJoinTask;
-import java.util.concurrent.RecursiveAction;
 import java.util.concurrent.RecursiveTask;
 
 public class ForkConstructLlabMatrix extends RecursiveTask<double[][]> {
@@ -48,10 +45,10 @@ public class ForkConstructLlabMatrix extends RecursiveTask<double[][]> {
         //if called for the first time, sections not yet defined, need to split task
         if (endX == 0) {
             ForkJoinTask.invokeAll(createSubtasks());
+            return dst;
         } else {
             return process();
         }
-        return null;
     }
 
     private RecursiveTask[] createSubtasks() {
