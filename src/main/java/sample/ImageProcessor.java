@@ -84,6 +84,16 @@ public class ImageProcessor{
         }
         return LlabMatrix;
     }
+    //process only a portion of the image
+    public double[][] constructLlabMatrix(BufferedImage img, double[][] dst, int startX, int endX, int startY, int endY) {
+        //fill matrix with Llab values
+        for (int i = startX; i < endX; i++) {
+            for (int j = startY; j < endY; j++) {
+                dst[j][i] = convertPixelRgbToLab(img.getRGB(i, j));
+            }
+        }
+        return dst;
+    }
 
     /*This method outputs a matrix of luminance values from a matrix of Llab values and given aperture number and exposure time
      * Faster than the same method with specified formula*/
