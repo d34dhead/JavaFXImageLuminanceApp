@@ -17,6 +17,8 @@ public class ImageProcessorTest {
     private int[] argbIntColors;
     private double[] expectedYs;
     private double[] expectedLs;
+    private double aCoeff = 0.0373;
+    private double bCoeff = 0.0307;
 
     @Before
     public void setUp() throws Exception {
@@ -101,4 +103,5 @@ public class ImageProcessorTest {
             }
         }
     }
+
 }

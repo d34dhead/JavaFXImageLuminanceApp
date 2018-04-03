@@ -38,6 +38,10 @@ public class ConstructLuminanceMatrixForkTask extends RecursiveTask<double[][]> 
     }
 
     public ConstructLuminanceMatrixForkTask(ImageProcessor processor, double[][] src, double fNumber, double exposureTime, double aCoeff, double bCoeff) {
+        this.fNumber = fNumber;
+        this.exposureTime = exposureTime;
+        this.aCoeff = aCoeff;
+        this.bCoeff = bCoeff;
         this.threadCount = Runtime.getRuntime().availableProcessors();
         this.processor = processor;
         this.src = src;
@@ -59,7 +63,7 @@ public class ConstructLuminanceMatrixForkTask extends RecursiveTask<double[][]> 
     //divide and conquer
     private RecursiveTask[] createSubtasks() {
         //initialize empty matrix
-        this.dst = new double[rows][cols];
+        System.out.println("Creating subtasks...");
 
         ConstructLuminanceMatrixForkTask[] tasks = new ConstructLuminanceMatrixForkTask[threadCount];
         //height divisible by threadCount -> divide vertically into n(=threadCount) sections
