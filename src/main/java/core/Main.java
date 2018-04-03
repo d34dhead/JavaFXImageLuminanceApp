@@ -23,7 +23,7 @@ import java.util.List;
 
 
 public class Main extends Application {
-    private final ImageDataCache imgDataCache = new ImageDataCache();
+    private final ImageDataCache imgDataCache = ImageDataCache.getInstance();
     private final PropertiesManager prop = new PropertiesManager();
     private final ImageView imv = new ImageView();
     private final ImageProcessor processor = imgDataCache.getProcessor();

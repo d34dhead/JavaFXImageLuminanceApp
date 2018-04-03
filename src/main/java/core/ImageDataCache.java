@@ -1,11 +1,18 @@
 package core;
 
-import java.awt.*;
+import java.awt.Color;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ForkJoinPool;
+/*TODO: Add list of unmergedImage, replace formed image array with it
+* TODO: change setLlabmatrix to init UnmergedImage llabMAtrix*/
 
 /*Author: Lubomir Nepil*/
 public class ImageDataCache {
+    private static ImageDataCache instance = null;
+
+    private List<UnmergedImage> imageList;
     private PropertiesManager props;
     private BufferedImage[] images;
     private BufferedImage fullSizedImage;
@@ -14,14 +21,32 @@ public class ImageDataCache {
     private double[][] lLabMatrix;
     private Double aperture;
     private Double exposure;
+
     private ImageProcessor processor = new ImageProcessor();
     private ImageMerger merger = new ImageMerger(processor);
+
     private ForkConstructLlabMatrix fork;
     private ForkJoinPool pool;
+
     //default color scale
     private Color[] hueImgColors = new Color[]{Color.BLACK, new Color(255, 0, 0),
             new Color(219, 70, 2), new Color(247, 220, 17), Color.WHITE};
     private String luminanceFormula;
+
+    private ImageDataCache(){
+        this.imageList = new ArrayList<>();
+    }
+
+    public static ImageDataCache getInstance(){
+        if(instance == null) {
+            instance = new ImageDataCache();
+        }
+        return instance;
+    }
+
+    public List<UnmergedImage> getImageList() {
+        return imageList;
+    }
 
     public ImageProcessor getProcessor() {
         return processor;

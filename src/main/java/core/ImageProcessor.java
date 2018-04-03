@@ -143,6 +143,23 @@ public class ImageProcessor{
         return luminanceMatrix;
     }
 
+    public double[][] constructLuminanceMatrix(double[][] LlabMatrix, double[][] dst, double aperture, double exposure, double Acoeff, double Bcoeff, int startX, int endX, int startY, int endY) {
+
+        for (int i = startX; i < endX; i++) {
+            for (int j = startY; j < endY; j++) {
+                //Llab values <= 20 && >= 80 not taken into account
+                if (LlabMatrix[j][i] <= 20) {
+                    dst[j][i] = 0;
+                } else if (LlabMatrix[j][i] >= 80) {
+                    dst[j][i] = 9999;
+                } else {
+                    dst[j][i] = (aperture * aperture / exposure) * Acoeff * Math.exp(Bcoeff * LlabMatrix[j][i]);
+                }
+            }
+        }
+        return dst;
+    }
+
     //Overloaded method with formula input
     public double[][] constructLuminanceMatrix(
             double[][] LlabMatrix, double aperture, double exposure, String expressionString) {
