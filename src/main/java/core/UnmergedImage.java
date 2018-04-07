@@ -2,13 +2,13 @@ package core;
 
 
 import java.awt.image.BufferedImage;
-import java.util.concurrent.ForkJoinPool;
 
 public class UnmergedImage {
     private final String imgName;
     private final BufferedImage img;
     private final double exposureTime;
     private final double fNumber;
+    private final String resulution;
     private double [][] lLabMatrix;
     private double [][] luminanceMatrix;
 
@@ -17,20 +17,35 @@ public class UnmergedImage {
         this.exposureTime = exposureTime;
         this.fNumber = fNumber;
         this.imgName = imgName;
-        this.lLabMatrix = new double[img.getHeight()][img.getWidth()];
-        this.luminanceMatrix = new double[img.getHeight()][img.getWidth()];
+        this.resulution = img.getWidth() + "x" + img.getHeight();
+    }
+
+    public String getResulution() {
+        return resulution;
+    }
+
+    public String getImgName() {
+        return imgName;
     }
 
     public BufferedImage getImg() {
         return img;
     }
 
-     public double getExposureTime() {
+    public double getExposureTime() {
         return exposureTime;
     }
 
     public double getfNumber() {
         return fNumber;
+    }
+
+    public void setlLabMatrix(double[][] lLabMatrix) {
+        this.lLabMatrix = lLabMatrix;
+    }
+
+    public void setLuminanceMatrix(double[][] luminanceMatrix) {
+        this.luminanceMatrix = luminanceMatrix;
     }
 
     public double[][] getlLabMatrix() {
@@ -40,4 +55,9 @@ public class UnmergedImage {
     public double[][] getLuminanceMatrix() {
         return luminanceMatrix;
     }
+
+    public boolean isInitialized(){
+        return this.lLabMatrix != null && this.luminanceMatrix != null;
+    }
+
 }

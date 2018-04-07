@@ -3,6 +3,7 @@ package core;
 
 import javafx.application.Application;
 import javafx.embed.swing.SwingFXUtils;
+import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
@@ -28,6 +29,7 @@ public class Main extends Application {
     private final ImageView imv = new ImageView();
     private final ImageProcessor processor = imgDataCache.getProcessor();
     private boolean legendCreatedFlag = false;
+    private UnmergedImage displayedImage;
 
     @Override
     public void start(Stage primaryStage) {
@@ -76,9 +78,9 @@ public class Main extends Application {
         final Label coords = new Label("");
 
         imv.setOnMouseMoved(e -> {
-            if (imgDataCache.getlMatrix() != null) {
+            if (this.displayedImage.isInitialized()) {
                 coords.setText("x: " + (int) Math.floor(e.getX()) + " y: " + (int) Math.floor(e.getY()));
-                lumTextField.setText(String.format("%.2f", imgDataCache.getPixelLuminance((int) Math.floor(e.getX()), (int) Math.floor(e.getY()))));
+                lumTextField.setText(String.format("%.2f", this.displayedImage.getLuminanceMatrix()[(int) Math.floor(e.getY())][(int) Math.floor(e.getX())]));
             }
         });
 
@@ -90,7 +92,7 @@ public class Main extends Application {
 
 
 
-        /*textbox setup*/
+        /*textbox setup*//*
         Label exposureLbl = new Label("Exposure time (seconds)");
         TextField exposureTextField = new TextField("");
         exposureTextField.setOnAction(e -> {
@@ -103,9 +105,9 @@ public class Main extends Application {
             } else {
                 alertInvalidNumber();
             }
-        });
+        });*/
 
-        Label apertureLbl = new Label("Aperture number");
+/*        Label apertureLbl = new Label("Aperture number");
         TextField apertureTextField = new TextField("");
         apertureTextField.setOnAction(e -> {
             String text = apertureTextField.getText();
@@ -117,13 +119,14 @@ public class Main extends Application {
             } else {
                 alertInvalidNumber();
             }
-        });
+        });*/
 
-        /*Vbox setup*/
+        /*Right side menu Vbox setup*/
         VBox vertBox = new VBox(10);
         vertBox.setPadding(new Insets(10, 5, 0, 5));
-        vertBox.getChildren().addAll(exposureLbl, exposureTextField, apertureLbl, apertureTextField,
-                luminance, lumTextField, coords);
+/*        vertBox.getChildren().addAll(exposureLbl, exposureTextField, apertureLbl, apertureTextField,
+                luminance, lumTextField, coords);*/
+        vertBox.getChildren().addAll(luminance, lumTextField, coords);
         vertBox.setFillWidth(true);
         vertBox.maxHeightProperty().bind(gridpane.maxHeightProperty());
 
@@ -132,21 +135,13 @@ public class Main extends Application {
         List<String> extensions = Arrays.asList("*.jpg", "*.jpeg", "*.tif", "*.tiff", "*.png", "*.bmp");
         fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image files", extensions));
         openItem.setOnAction(event -> {
-            List<File> files = fileChooser.showOpenMultipleDialog(primaryStage);
+            File file = fileChooser.showOpenDialog(primaryStage);
 
-            if (files != null) {
+            if (file != null) {
                 try {
-                    openImg(files);
-
+                    loadImg(file, vertBox);
                 } catch (IOException e) {
                     e.printStackTrace();
-                }
-                if ((imgDataCache.getImages() != null || imgDataCache.getFullSizedImage() != null) && !legendCreatedFlag) {
-                    //add legend
-                    VBox legend = createLegend();
-                    vertBox.getChildren().add(legend);
-                    root.getChildren().remove(gridpane);
-                    root.getChildren().add(gridpane);
                 }
             }
         });
@@ -232,12 +227,12 @@ public class Main extends Application {
                 if (fitToWindowCheck.isSelected()) {
                     prop.setProperty("fitToWindow", "true");
                     if (this.imgDataCache.getFullSizedImage() != null) {
-                        refreshImage();
+                        refreshView();
                     }
                 } else {
                     prop.setProperty("fitToWindow", "false");
                     if (this.imgDataCache.getFullSizedImage() != null) {
-                        refreshImage();
+                        refreshView();
                     }
                 }
             }
@@ -263,11 +258,11 @@ public class Main extends Application {
         TextField formulaText = new TextField();
         formulaText.setPromptText("enter formula");
         Button submitBtn = new Button("Submit");
-        //TODO:add input validation with alert
+        //TODO: add formula input validation
         submitBtn.setOnAction(e -> {
             imgDataCache.setLuminanceFormula(formulaText.getText());
-            if (!(imgDataCache.getlLabMatrix() == null)) {
-                imgDataCache.populateLMatrix();
+            if (!(displayedImage.getlLabMatrix() == null)) {
+                imgDataCache.initializeImageMatrices(displayedImage, false);
             }
             stage.close();
         });
@@ -277,8 +272,8 @@ public class Main extends Application {
         stage.show();
     }
 
-    private void refreshImage() {
-        boolean resize = Boolean.parseBoolean(prop.getProperty("fitToWindow"));
+    private void refreshView() {
+/*      boolean resize = Boolean.parseBoolean(prop.getProperty("fitToWindow"));
 
         if (resize) {
             int srcWidth = this.imgDataCache.getFullSizedImage().getWidth();
@@ -289,37 +284,83 @@ public class Main extends Application {
                 this.imgDataCache.setResizedImg(ImageScaler.rescale(this.imgDataCache.getFullSizedImage(), (int) (1080 * aspectRatio), 1080));
             }
         }
-        this.imgDataCache.populateLlabMatrix(resize);
-        BufferedImage hueImg = processor.constructHueImage(imgDataCache.getlLabMatrix(), imgDataCache.getHueImgColors());
-        imv.setImage(SwingFXUtils.toFXImage(hueImg, null));
+        this.imgDataCache.populateLlabMatrix(resize);*/
 
-        //refresh luminance matrix if coefficients are set
-        this.imgDataCache.populateLMatrix();
+         if(displayedImage != null) {
+             long before = System.nanoTime();
+             this.imgDataCache.initializeImageMatrices(displayedImage, false);
+             long after = System.nanoTime();
+             System.out.println("Time elapsed: " + (after - before));
 
+             BufferedImage hueImg = processor.constructHueImage(displayedImage.getlLabMatrix(), imgDataCache.getHueImgColors());
+             imv.setImage(SwingFXUtils.toFXImage(hueImg, null));
+         }
     }
 
-    private void openImg(List<File> files) throws IOException {
-        BufferedImage[] images = new BufferedImage[files.size()];
+    private void loadImg(File file, VBox rightMenu) throws IOException {
 
-        for (int i = 0; i < files.size(); i++) {
-            images[i] = ImageIO.read(files.get(i));
-        }
+            final String fileName = file.getName();
+            final BufferedImage image = ImageIO.read(file);
 
-        if (files.size() == 1) {
-            this.imgDataCache.setFullSizedImage(images[0]);
-            this.imgDataCache.setImages(null);
-        } else if (imgDimensionsEqual(images)) {
-            this.imgDataCache.setImages(images);
-        } else {
-            Alert sizeAlert = new Alert(Alert.AlertType.ERROR);
-            sizeAlert.setHeaderText("Image dimensions do not match");
-            sizeAlert.setContentText("When loading multiple images, the dimensions of all images must be identical");
-            sizeAlert.showAndWait();
-            return;
-        }
+            Stage exposureInputStage = new Stage();
 
-        refreshImage();
+            Label exposureLabel = new Label("Enter exposure parameters below:");
+            TextField fNumberTextField = new TextField("F-number");
+            TextField exposureTimeTextField = new TextField("exposure time [s]");
 
+            Button okBtn = new Button("OK");
+            okBtn.setOnAction( e -> {
+                String fNumberText = fNumberTextField.getText();
+                String exposureTimeText = exposureTimeTextField.getText();
+
+                if (isValidDouble(fNumberText) && isValidDouble(exposureTimeText)) {
+                    double fNumber = Double.parseDouble(fNumberText);
+                    double exposureTime = Double.parseDouble(exposureTimeText);
+
+                    UnmergedImage toBeAdded = new UnmergedImage(image, exposureTime, fNumber, fileName);
+                    imgDataCache.getImageList().add(toBeAdded);
+
+                    exposureInputStage.close();
+                    addTooltip(toBeAdded, rightMenu);
+                } else {
+                    alertInvalidNumber();
+                }
+            });
+            VBox vBox = new VBox(exposureLabel, fNumberTextField, exposureTimeTextField, okBtn);
+            Scene scene = new Scene(vBox, 200, 200);
+            exposureInputStage.setScene(scene);
+            exposureInputStage.show();
+    }
+
+    private void addTooltip(UnmergedImage addedImage, VBox rightMenu) {
+        VBox imgTooltip = new VBox();
+        imgTooltip.setBorder(new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT)));
+        Label imgName = new Label(addedImage.getImgName());
+        Label exposureTime = new Label("Exp. time: " + addedImage.getExposureTime());
+        Label fNumber = new Label("/ F-number: " + addedImage.getfNumber());
+        Label resolution = new Label(addedImage.getResulution());
+        Button deleteBtn = new Button("Delete");
+
+        deleteBtn.setOnAction(e -> {
+            imgDataCache.getImageList().remove(addedImage);
+            if(addedImage.equals(displayedImage)){
+                imv.setImage(null);
+            }
+            rightMenu.getChildren().remove(imgTooltip);
+
+
+        });
+
+        Button displayBtn = new Button("View");
+        displayBtn.setOnAction(e -> {
+            this.displayedImage = addedImage;
+            refreshView();
+        });
+
+        HBox exposureInfo = new HBox(exposureTime, fNumber);
+        HBox buttons = new HBox(displayBtn, deleteBtn);
+        imgTooltip.getChildren().addAll(imgName, resolution, exposureInfo, buttons);
+        rightMenu.getChildren().add(imgTooltip);
     }
 
     private boolean imgDimensionsEqual(BufferedImage[] images) {
@@ -379,7 +420,13 @@ public class Main extends Application {
         return legend;
     }
 
+    private boolean isValidDouble(String text){
+        return text.matches("^[+-]?([0-9]*[.])?[0-9]+$");
+    }
+
     public static void main(String[] args) {
         launch(args);
     }
+
+
 }

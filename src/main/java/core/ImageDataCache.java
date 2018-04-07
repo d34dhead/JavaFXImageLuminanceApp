@@ -1,5 +1,7 @@
 package core;
 
+import com.drew.lang.annotations.NotNull;
+
 import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
@@ -19,13 +21,15 @@ public class ImageDataCache {
     private BufferedImage resizedImg;
     private double[][] lMatrix;
     private double[][] lLabMatrix;
+
     private Double aperture;
     private Double exposure;
 
     private ImageProcessor processor = new ImageProcessor();
     private ImageMerger merger = new ImageMerger(processor);
 
-    private ForkConstructLlabMatrix fork;
+    private ForkConstructLlabMatrix llabForkTask;
+    private ConstructLuminanceMatrixForkTask luminanceForkTask;
     private ForkJoinPool pool;
 
     //default color scale
@@ -42,6 +46,38 @@ public class ImageDataCache {
             instance = new ImageDataCache();
         }
         return instance;
+    }
+
+    public void initializeImageMatrices(UnmergedImage img, boolean coeffsChanged){
+        this.pool = new ForkJoinPool();
+        if(img.getlLabMatrix() == null) {
+            this.llabForkTask = new ForkConstructLlabMatrix(this.processor, img.getImg());
+            pool.execute(llabForkTask);
+            img.setlLabMatrix(llabForkTask.join());
+        }
+        //if coefficients changed, need to recalculate luminance, thus the coeffChange boolean
+        if(img.getLuminanceMatrix() == null || coeffsChanged) {
+            props = new PropertiesManager();
+
+            if (this.luminanceFormula == null) {
+                if (props.containsKey("coefficientA") && props.containsKey("coefficientB")) {
+                    double coeffA = Double.parseDouble(props.getProperty("coefficientA"));
+                    double coeffB = Double.parseDouble(props.getProperty("coefficientB"));
+                        this.luminanceForkTask = new ConstructLuminanceMatrixForkTask(processor, img.getlLabMatrix(), img.getfNumber(), img.getExposureTime(), coeffA, coeffB);
+                        pool.execute(luminanceForkTask);
+                        img.setLuminanceMatrix(luminanceForkTask.join());
+                } else {
+                    this.luminanceForkTask = new ConstructLuminanceMatrixForkTask(processor, img.getlLabMatrix(), img.getfNumber(), img.getExposureTime(), 0.0373, 0.0307);
+                    pool.execute(luminanceForkTask);
+                    img.setLuminanceMatrix(luminanceForkTask.join());
+                }
+            } else {
+                this.lMatrix = processor.constructLuminanceMatrix(this.lLabMatrix, aperture, exposure, luminanceFormula);
+            }
+
+            props = null;
+
+        }
     }
 
     public List<UnmergedImage> getImageList() {
@@ -127,19 +163,19 @@ public class ImageDataCache {
         if(this.images == null) {
             if (!resized) {
                 if (this.fullSizedImage != null) {
-                    this.fork = new ForkConstructLlabMatrix(this.processor, this.fullSizedImage);
-                    this.lLabMatrix = this.pool.invoke(this.fork);
+                    this.llabForkTask = new ForkConstructLlabMatrix(this.processor, this.fullSizedImage);
+                    this.lLabMatrix = this.pool.invoke(this.llabForkTask);
                 }
             } else {
                 if (this.resizedImg != null) {
-                    this.fork = new ForkConstructLlabMatrix(this.processor, this.resizedImg);
-                    this.lLabMatrix = this.pool.invoke(this.fork);
+                    this.llabForkTask = new ForkConstructLlabMatrix(this.processor, this.resizedImg);
+                    this.lLabMatrix = this.pool.invoke(this.llabForkTask);
                 }
             }
         } else {
             this.lLabMatrix = merger.MergeImages(images);
         }
-    this.fork = null;
+    this.llabForkTask = null;
     }
 
     public boolean apertureAndExposureSet() {

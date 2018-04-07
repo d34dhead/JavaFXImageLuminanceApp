@@ -63,8 +63,6 @@ public class ConstructLuminanceMatrixForkTask extends RecursiveTask<double[][]> 
     //divide and conquer
     private RecursiveTask[] createSubtasks() {
         //initialize empty matrix
-        System.out.println("Creating subtasks...");
-
         ConstructLuminanceMatrixForkTask[] tasks = new ConstructLuminanceMatrixForkTask[threadCount];
         //height divisible by threadCount -> divide vertically into n(=threadCount) sections
         if (rows % threadCount == 0) {
