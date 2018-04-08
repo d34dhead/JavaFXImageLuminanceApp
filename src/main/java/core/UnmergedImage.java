@@ -3,7 +3,7 @@ package core;
 
 import java.awt.image.BufferedImage;
 
-public class UnmergedImage {
+public class UnmergedImage implements MyImage {
     private final String imgName;
     private final BufferedImage img;
     private final double exposureTime;
@@ -56,6 +56,7 @@ public class UnmergedImage {
         return luminanceMatrix;
     }
 
+    @Override
     public boolean isInitialized(){
         return this.lLabMatrix != null && this.luminanceMatrix != null;
     }

@@ -186,6 +186,14 @@ public class ImageProcessor{
         return luminanceMatrix;
     }
 
+    //omitting Llab values <= 20 && >= 80 check, assuming only valid values are put in
+    public double calculatePixelLuminance(UnmergedImage img, int j, int i, double Acoeff, double Bcoeff){
+                    double fNumber = img.getfNumber();
+                    double exposureTime = img.getExposureTime();
+                    double lLabValue = img.getlLabMatrix()[j][i];
+                    return (fNumber * fNumber / exposureTime) * Acoeff * Math.exp(Bcoeff * lLabValue);
+    }
+
     /*This method takes in the given image and outputs an image whose color is based
     off the L value of each pixel in the Lab color system, as the L coordinate is proportional to Luminance.
     Color scale can be changed by Color array input when invoking the method.*/
