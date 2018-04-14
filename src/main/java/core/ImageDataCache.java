@@ -96,7 +96,7 @@ public class ImageDataCache {
     }
 
     public MergedImage mergeAllImages(){
-        return this.mergedImage = merger.MergeImages(this.imageList);
+            return this.mergedImage = merger.MergeImages(this.imageList);
     }
 
 
