@@ -67,7 +67,9 @@ public class ImageProcessorTest {
 
     @Test
     public void constructLlabMatrix() {
+        long start = System.nanoTime();
         double[][] LlabMatrix = processor.constructLlabMatrix(srcImg);
+        System.out.println("Llab Matrix computation took " + (System.nanoTime() - start) + " ns" );
         assertNotNull(LlabMatrix);
         assertEquals(srcImg.getHeight(), LlabMatrix.length);
         assertEquals(srcImg.getWidth(), LlabMatrix[0].length);

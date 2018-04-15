@@ -77,8 +77,8 @@ public class ImageProcessor{
         int rows = img.getHeight();
         double[][] LlabMatrix = new double[rows][cols];
         //fill matrix with Llab values
-        for (int i = 0; i < cols; i++) {
-            for (int j = 0; j < rows; j++) {
+        for (int j = 0; j < rows; j++) {
+            for (int i = 0; i < cols; i++) {
                 LlabMatrix[j][i] = convertPixelRgbToLab(img.getRGB(i, j));
             }
         }
@@ -87,8 +87,8 @@ public class ImageProcessor{
     //process only a portion of the image
     public double[][] constructLlabMatrix(BufferedImage img, double[][] dst, int startX, int endX, int startY, int endY) {
         //fill matrix with Llab values
-        for (int i = startX; i < endX; i++) {
-            for (int j = startY; j < endY; j++) {
+        for (int j = startY; j < endY; j++) {
+            for (int i = startX; i < endX; i++) {
                 dst[j][i] = convertPixelRgbToLab(img.getRGB(i, j));
             }
         }
@@ -105,8 +105,8 @@ public class ImageProcessor{
         //create an empty L matrix of the same size as Llab matrix
         double[][] luminanceMatrix = new double[rows][cols];
 
-        for (int i = 0; i < cols; i++) {
-            for (int j = 0; j < rows; j++) {
+        for (int j = 0; j < rows; j++) {
+            for (int i = 0; i < cols; i++) {
                 //Llab values <= 20 && >= 80 not taken into account
                 if (LlabMatrix[j][i] <= 20) {
                     luminanceMatrix[j][i] = 0;
@@ -145,8 +145,8 @@ public class ImageProcessor{
     //overloaded method for processing only a part of an image with bounds specified
     public double[][] constructLuminanceMatrix(double[][] LlabMatrix, double[][] dstLuminanceMatrix, double aperture, double exposure, double Acoeff, double Bcoeff, int startX, int endX, int startY, int endY) {
 
-        for (int i = startX; i < endX; i++) {
-            for (int j = startY; j < endY; j++) {
+        for (int j = startY; j < endY; j++) {
+            for (int i = startX; i < endX; i++) {
                 //Llab values <= 20 && >= 80 not taken into account
                 if (LlabMatrix[j][i] <= 20) {
                     dstLuminanceMatrix[j][i] = 0;
@@ -177,8 +177,8 @@ public class ImageProcessor{
         //create a temp L matrix of the same size as Llab matrix
         double[][] luminanceMatrix = new double[rows][cols];
 
-        for (int i = 0; i < cols; i++) {
-            for (int j = 0; j < rows; j++) {
+        for (int j = 0; j < rows; j++) {
+            for (int i = 0; i < cols; i++) {
                 lightness.setArgumentValue(LlabMatrix[j][i]);
                 luminanceMatrix[j][i] = luminanceFormula.calculate();
             }
@@ -205,8 +205,8 @@ public class ImageProcessor{
         //construct an empty img with given dimensions
         BufferedImage hueImg = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         //fill image by adding pixels one by one
-        for (int i = 0; i < width; i++) {
-            for (int j = 0; j < height; j++) {
+        for (int j = 0; j < height; j++) {
+            for (int i = 0; i < width; i++) {
                 //get L value
                 double lValue = LlabMatrix[j][i];
                 Color color;

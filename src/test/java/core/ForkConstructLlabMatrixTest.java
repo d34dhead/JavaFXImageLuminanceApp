@@ -42,11 +42,11 @@ public class ForkConstructLlabMatrixTest {
 
     @Test
     public void compute() {
-        //long starttime = System.nanoTime();
+        long starttime = System.nanoTime();
         pool.execute(fork);
         double[][] llabMatrix = fork.join();
-        //long timeElapsed = System.nanoTime() - starttime;
-        //System.out.println("Time elapsed multithreaded: " + timeElapsed);
+        long timeElapsed = System.nanoTime() - starttime;
+        System.out.println("Time elapsed multithreaded: " + timeElapsed);
         assertNotNull(llabMatrix);
         assertEquals(srcImg.getWidth(), llabMatrix[0].length);
         assertEquals(srcImg.getHeight(), llabMatrix.length);
