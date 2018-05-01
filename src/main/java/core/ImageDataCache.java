@@ -7,8 +7,7 @@ import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ForkJoinPool;
-/*TODO: Add list of unmergedImage, replace formed image array with it
-* TODO: change setLlabmatrix to init UnmergedImage llabMAtrix*/
+import java.util.stream.Collectors;
 
 /*Author: Lubomir Nepil*/
 public class ImageDataCache {
@@ -73,6 +72,12 @@ public class ImageDataCache {
             props = null;
 
         }
+    }
+
+    public List<UnmergedImage> getSelectedImages(){
+        return this.imageList.stream()
+                .filter(UnmergedImage::isSelected)
+                .collect(Collectors.toList());
     }
 
     public List<UnmergedImage> getImageList() {

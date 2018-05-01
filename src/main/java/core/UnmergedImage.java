@@ -11,6 +11,7 @@ public class UnmergedImage implements MyImage {
     private final String resulution;
     private double [][] lLabMatrix;
     private double [][] luminanceMatrix;
+    private boolean selected;
 
     public UnmergedImage(BufferedImage img, double exposureTime, double fNumber, String imgName){
         this.img = img;
@@ -18,6 +19,15 @@ public class UnmergedImage implements MyImage {
         this.fNumber = fNumber;
         this.imgName = imgName;
         this.resulution = img.getWidth() + "x" + img.getHeight();
+        this.selected = false;
+    }
+
+    public boolean isSelected() {
+        return selected;
+    }
+
+    public void setSelected(boolean selected) {
+        this.selected = selected;
     }
 
     public String getResulution() {

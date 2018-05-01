@@ -45,7 +45,6 @@ public class ImageMerger {
 
         ArrayList<UnmergedImage> potentialReplacements = new ArrayList<>();
         for (int j = 0; j < enhancedLlabMatrix.length; j++) {
-            logger.debug("Processing column no. " + j);
             for (int i = 0; i < enhancedLlabMatrix[0].length; i++) {
 
                 //if value is invalid, look for a valid value in another matrix at the same index and replace with the best fit
@@ -68,7 +67,6 @@ public class ImageMerger {
                         //replace luminance value
                         mergedLuminanceMatrix[j][i] = imgProcessor.calculatePixelLuminance(replacingImage, j, i, coeffA, coeffB);
                         long totalTime = System.nanoTime() - startTime;
-                        logger.debug("Replacing the pixel took " + totalTime / 1000000.0 + " ms");
                     }
                     potentialReplacements.clear();
                 }
@@ -77,7 +75,6 @@ public class ImageMerger {
         merged.setlLabMatrix(enhancedLlabMatrix);
         merged.setLuminanceMatrix(mergedLuminanceMatrix);
         props = null;
-        logger.debug("Total processing time: " + (System.nanoTime() - totalStart)/1000000000d + "seconds");
         return merged;
     }
 
@@ -122,4 +119,5 @@ public class ImageMerger {
 
         return count;
     }
+
 }

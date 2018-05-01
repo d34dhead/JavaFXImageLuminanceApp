@@ -10,6 +10,13 @@ import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.*;
 import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuBar;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextField;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
@@ -17,11 +24,13 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 public class Main extends Application {
@@ -29,7 +38,7 @@ public class Main extends Application {
     private final PropertiesManager prop = new PropertiesManager();
     private final ImageView imv = new ImageView();
     private final ImageProcessor processor = imgDataCache.getProcessor();
-    private boolean legendCreatedFlag = false;
+    private boolean imageButtonsCreated = false;
     private boolean recalculateLuminanceMatrix = false;
     private MyImage displayedImage;
 
@@ -77,11 +86,14 @@ public class Main extends Application {
         imv.setPreserveRatio(true);
         final Label luminance = new Label("Luminance (cd/m^2)");
         final TextField lumTextField = new TextField("0");
+        final Label llabLabel = new Label("Llab");
+        final TextField llabTextField = new TextField("0");
         final Label coords = new Label("");
 
         imv.setOnMouseMoved(e -> {
             if (this.displayedImage.isInitialized()) {
                 coords.setText("x: " + (int) Math.floor(e.getX()) + " y: " + (int) Math.floor(e.getY()));
+                llabTextField.setText(String.format("%.2f", this.displayedImage.getlLabMatrix()[(int) Math.floor(e.getY())][(int) Math.floor(e.getX())]));
                 lumTextField.setText(String.format("%.2f", this.displayedImage.getLuminanceMatrix()[(int) Math.floor(e.getY())][(int) Math.floor(e.getX())]));
             }
         });
@@ -92,17 +104,9 @@ public class Main extends Application {
         scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
 
-        /*Right side menu Vbox setup*/
-        Button mergeBtn = new Button("Merge images");
-        mergeBtn.setVisible(false);
-        mergeBtn.setOnAction(e -> {
-            this.displayedImage = imgDataCache.mergeAllImages();
-            refreshView();
-        });
-
         VBox vertBox = new VBox(10);
         vertBox.setPadding(new Insets(10, 5, 0, 5));
-        vertBox.getChildren().addAll(luminance, lumTextField, coords, mergeBtn);
+        vertBox.getChildren().addAll(llabLabel, llabTextField, luminance, lumTextField, coords);
         vertBox.setFillWidth(true);
         vertBox.maxHeightProperty().bind(gridpane.maxHeightProperty());
 
@@ -247,14 +251,20 @@ public class Main extends Application {
     }
 
     private void refreshView() {
-         if(displayedImage != null) {
-             if(displayedImage instanceof UnmergedImage) {
-                 this.imgDataCache.initializeImageMatrices(displayedImage, recalculateLuminanceMatrix);
-             }
-             BufferedImage hueImg = processor.constructHueImage(displayedImage.getlLabMatrix(), imgDataCache.getHueImgColors());
-             imv.setImage(SwingFXUtils.toFXImage(hueImg, null));
-         }
-         recalculateLuminanceMatrix = false;
+        if (!imgDataCache.getImageList().contains(displayedImage) && displayedImage instanceof UnmergedImage) {
+            displayedImage = null;
+            imv.setImage(null);
+        }
+
+        if (displayedImage != null) {
+            if (displayedImage instanceof UnmergedImage) {
+                this.imgDataCache.initializeImageMatrices(displayedImage, recalculateLuminanceMatrix);
+            }
+            BufferedImage hueImg = processor.constructHueImage(displayedImage.getlLabMatrix(), imgDataCache.getHueImgColors());
+            imv.setImage(SwingFXUtils.toFXImage(hueImg, null));
+        }
+
+        recalculateLuminanceMatrix = false;
     }
 
     private void loadImg(File file, VBox rightMenu) throws IOException {
@@ -280,10 +290,10 @@ public class Main extends Application {
                     UnmergedImage toBeAdded = new UnmergedImage(image, exposureTime, fNumber, fileName);
                     imgDataCache.getImageList().add(toBeAdded);
 
-                    exposureInputStage.close();
 
+                    exposureInputStage.close();
+                    setupImageHandlingButtons(rightMenu);
                     addTooltip(toBeAdded, rightMenu);
-                    showMergeButton(rightMenu);
                 } else {
                     alertInvalidNumber();
                 }
@@ -294,43 +304,88 @@ public class Main extends Application {
             exposureInputStage.show();
     }
 
-    private void showMergeButton(VBox rightMenu) {
-        if(imgDataCache.getImageList().size() > 1){
-           rightMenu.getChildren().get(3).setVisible(true);
+    private void setupImageHandlingButtons(VBox rightMenu){
+        if(!imageButtonsCreated) {
+            Button displayBtn = new Button("View");
+            displayBtn.setOnAction(e -> {
+                List<UnmergedImage> selectedImgs = imgDataCache.getSelectedImages();
+                if (!selectedImgs.isEmpty()) {
+                    if (selectedImgs.size() == 1) {
+                        this.displayedImage = selectedImgs.get(0);
+                    } else {
+                        this.displayedImage = imgDataCache.mergeAllImages();
+                    }
+                    refreshView();
+                }
+            });
+
+            Button deleteBtn = new Button("Delete");
+            deleteBtn.setOnAction(e -> {
+                List<UnmergedImage> selectedImgs = imgDataCache.getSelectedImages();
+                if (selectedImgs != null) {
+                    //get tooltips from rightmenu
+                    List<ImageTooltip> tooltips = rightMenu.getChildren().stream()
+                            .filter(elem -> elem instanceof ImageTooltip)
+                            .map(tip -> (ImageTooltip) tip)
+                            .collect(Collectors.toList());
+                    //remove selected tooltips from menu
+                    tooltips.stream()
+                            .forEach(a -> {
+                                UnmergedImage img = a.getImageReference();
+                                if (selectedImgs.contains(img)) {
+                                    rightMenu.getChildren().remove(a);
+                                    imgDataCache.getImageList().remove(img);
+                                }
+                            });
+                    refreshView();
+                }
+            });
+            HBox box = new HBox(displayBtn, deleteBtn);
+            rightMenu.getChildren().add(box);
+            imageButtonsCreated = true;
         }
     }
-
     private void addTooltip(UnmergedImage addedImage, VBox rightMenu) {
-        VBox imgTooltip = new VBox();
-        imgTooltip.setBorder(new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT)));
+
         Label imgName = new Label(addedImage.getImgName());
-        Label exposureTime = new Label("Exp. time: " + addedImage.getExposureTime());
-        Label fNumber = new Label("/ F-number: " + addedImage.getfNumber());
-        Label resolution = new Label(addedImage.getResulution());
-        Button deleteBtn = new Button("Delete");
+        imgName.setPadding(new Insets(0,0,0,5));
+        imgName.setAlignment(Pos.CENTER);
 
-        deleteBtn.setOnAction(e -> {
-            imgDataCache.getImageList().remove(addedImage);
-            if(addedImage.equals(displayedImage)){
-                imv.setImage(null);
-            }
-            rightMenu.getChildren().remove(imgTooltip);
-            if(imgDataCache.getImageList().size() < 2){
-                rightMenu.getChildren().get(3).setVisible(false);
-            }
-
+        CheckBox checkBox = new CheckBox();
+        checkBox.setOnAction(e -> {
+            addedImage.setSelected(checkBox.isSelected());
         });
 
-        Button displayBtn = new Button("View");
-        displayBtn.setOnAction(e -> {
-            this.displayedImage = addedImage;
-            refreshView();
+        Button detailsBtn = new Button("Details");
+        detailsBtn.setOnAction(e -> {
+            showImageDetails(addedImage);
         });
 
-        HBox exposureInfo = new HBox(exposureTime, fNumber);
-        HBox buttons = new HBox(displayBtn, deleteBtn);
-        imgTooltip.getChildren().addAll(imgName, resolution, exposureInfo, buttons);
+        HBox hBox = new HBox(checkBox, detailsBtn);
+        hBox.setAlignment(Pos.CENTER);
+
+        ImageTooltip imgTooltip = new ImageTooltip(addedImage, imgName, hBox);
+        imgTooltip.setBorder(new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT)));
+        imgTooltip.setAlignment(Pos.CENTER);
         rightMenu.getChildren().add(imgTooltip);
+    }
+
+    private void showImageDetails(UnmergedImage image) {
+
+        Label exposureTime = new Label("Exposure time: " + String.format("%.5f", image.getExposureTime()));
+        Label fNumber = new Label("F-number: " + String.format("%.5f", image.getfNumber()));
+        Label resolution = new Label(image.getResulution());
+        Button closeBtn = new Button("Close");
+
+        VBox vBox = new VBox(resolution, exposureTime, fNumber, closeBtn);
+        vBox.setAlignment(Pos.CENTER);
+        Stage stage = new Stage();
+        stage.setTitle(image.getImgName());
+        Scene scene = new Scene(vBox, 300, 100);
+        stage.setScene(scene);
+
+        closeBtn.setOnAction(e -> stage.close());
+        stage.show();
     }
 
     private boolean imgDimensionsEqual(BufferedImage[] images) {
@@ -386,7 +441,7 @@ public class Main extends Application {
 
             legend.getChildren().add(legendLine);
         }
-        this.legendCreatedFlag = true;
+
         return legend;
     }
 
