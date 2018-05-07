@@ -2,9 +2,7 @@ package core;
         /*Author: Lubomir Nepil*/
 
 import javafx.application.Application;
-import javafx.collections.ObservableList;
 import javafx.embed.swing.SwingFXUtils;
-import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
@@ -20,11 +18,12 @@ import javafx.scene.control.TextField;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
+import javafx.scene.text.FontWeight;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.scene.text.Font;
 
 import javax.imageio.ImageIO;
-import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.text.DecimalFormat;
@@ -45,30 +44,30 @@ public class Main extends Application {
     @Override
     public void start(Stage primaryStage) {
 
-        primaryStage.setTitle("Luminance Calculator");
-        Group root = new Group();
+        primaryStage.setTitle("HDR Luminance Analyzer");
+        VBox root = new VBox();
         Scene scene = new Scene(root, 1200, 1000, Color.WHITE);
 
         //menu setup
         MenuBar menu = new MenuBar();
         menu.setBackground(new Background(new BackgroundFill(Color.LIGHTGREY, null, null)));
+        menu.setBorder(new Border(new BorderStroke(Color.GRAY, BorderStrokeStyle.SOLID, null, BorderWidths.DEFAULT)));
         Menu menuFile = new Menu("File");
         MenuItem openItem = new MenuItem("Open...");
         menuFile.getItems().add(openItem);
         Menu menuSettings = new Menu("Settings");
         MenuItem formulaItem = new MenuItem("Change formula...");
-        MenuItem generalSettingsItem = new MenuItem("Do not touch...");
         MenuItem coefficientsItem = new MenuItem("Change coefficients...");
-        menuSettings.getItems().addAll(coefficientsItem, formulaItem, generalSettingsItem);
+        menuSettings.getItems().addAll(coefficientsItem, formulaItem);
         menu.getMenus().addAll(menuFile, menuSettings);
 
         coefficientsItem.setOnAction(e -> showCoefficientsWindow());
         formulaItem.setOnAction(e -> showFormulaWindow());
-        generalSettingsItem.setOnAction(e -> showGeneralSettingsWindow());
 
         /*grid setup*/
         GridPane gridpane = new GridPane();
         gridpane.setPadding(new Insets(10, 10, 30, 10));
+        gridpane.setHgap(10);
         ColumnConstraints col1 = new ColumnConstraints();
         ColumnConstraints col2 = new ColumnConstraints();
         col1.setPercentWidth(90);
@@ -77,24 +76,41 @@ public class Main extends Application {
         RowConstraints row1 = new RowConstraints();
         row1.setPercentHeight(100);
         gridpane.getRowConstraints().addAll(row1);
-        gridpane.gridLinesVisibleProperty().setValue(true);
+        gridpane.gridLinesVisibleProperty().setValue(false);
         gridpane.prefHeightProperty().bind(scene.heightProperty());
         gridpane.prefWidthProperty().bind(scene.widthProperty());
 
+        /*RHS menu setup*/
 
-        /*imageView setup*/
-        imv.setPreserveRatio(true);
         final Label luminance = new Label("Luminance (cd/m^2)");
-        final TextField lumTextField = new TextField("0");
-        final Label llabLabel = new Label("Llab");
-        final TextField llabTextField = new TextField("0");
-        final Label coords = new Label("");
+        luminance.setFont(Font.font("Segoe UI",12));
+        luminance.setMaxWidth(Double.MAX_VALUE);
+        luminance.setAlignment(Pos.CENTER);
 
+        final TextField lumTextField = new TextField("0");
+        lumTextField.setFont(Font.font("Segoe UI", FontWeight.BOLD, 12));
+        lumTextField.setAlignment(Pos.CENTER);
+
+        final Label llabLabel = new Label("LLab");
+        llabLabel.setFont(Font.font("Segoe UI",12));
+        llabLabel.setMaxWidth(Double.MAX_VALUE);
+        llabLabel.setAlignment(Pos.CENTER);
+
+        final TextField llabTextField = new TextField("0");
+        llabTextField.setFont(Font.font("Segoe UI", FontWeight.BOLD, 12));
+        llabTextField.setAlignment(Pos.CENTER);
+
+        final Label coords = new Label("");
+        coords.setFont(Font.font("Segoe UI", FontWeight.BOLD, 12));
+        coords.setMaxWidth(Double.MAX_VALUE);
+        coords.setAlignment(Pos.CENTER);
+
+        imv.setPreserveRatio(true);
         imv.setOnMouseMoved(e -> {
             if (this.displayedImage.isInitialized()) {
-                coords.setText("x: " + (int) Math.floor(e.getX()) + " y: " + (int) Math.floor(e.getY()));
-                llabTextField.setText(String.format("%.2f", this.displayedImage.getlLabMatrix()[(int) Math.floor(e.getY())][(int) Math.floor(e.getX())]));
-                lumTextField.setText(String.format("%.2f", this.displayedImage.getLuminanceMatrix()[(int) Math.floor(e.getY())][(int) Math.floor(e.getX())]));
+                coords.setText("X: " + (int) Math.floor(e.getX()) + " Y: " + (int) Math.floor(e.getY()));
+                llabTextField.setText(String.format("%.3f", this.displayedImage.getlLabMatrix()[(int) Math.floor(e.getY())][(int) Math.floor(e.getX())]));
+                lumTextField.setText(String.format("%.3f", this.displayedImage.getLuminanceMatrix()[(int) Math.floor(e.getY())][(int) Math.floor(e.getX())]));
             }
         });
 
@@ -105,8 +121,10 @@ public class Main extends Application {
         scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
 
         VBox vertBox = new VBox(10);
-        vertBox.setPadding(new Insets(10, 5, 0, 5));
-        vertBox.getChildren().addAll(llabLabel, llabTextField, luminance, lumTextField, coords);
+        vertBox.setPadding(new Insets(10, 10, 10, 10));
+        vertBox.setBorder(new Border(new BorderStroke(Color.GRAY, BorderStrokeStyle.SOLID, new CornerRadii(5), BorderWidths.DEFAULT)));
+        vertBox.getChildren().addAll(llabLabel, llabTextField, luminance, lumTextField,
+                coords);
         vertBox.setFillWidth(true);
         vertBox.maxHeightProperty().bind(gridpane.maxHeightProperty());
 
@@ -129,8 +147,8 @@ public class Main extends Application {
         /*populate grid*/
         gridpane.add(scrollPane, 0, 0);
         gridpane.add(vertBox, 1, 0);
-        VBox outerVbox = new VBox(menu, gridpane);
-        root.getChildren().add(outerVbox);
+        root.getChildren().addAll(menu, gridpane);
+
         primaryStage.setMaximized(true);
         primaryStage.setResizable(true);
         primaryStage.setScene(scene);
@@ -260,8 +278,9 @@ public class Main extends Application {
             if (displayedImage instanceof UnmergedImage) {
                 this.imgDataCache.initializeImageMatrices(displayedImage, recalculateLuminanceMatrix);
             }
-            BufferedImage hueImg = processor.constructHueImage(displayedImage.getlLabMatrix(), imgDataCache.getHueImgColors());
-            imv.setImage(SwingFXUtils.toFXImage(hueImg, null));
+            //BufferedImage hueImg = processor.constructHueImage(displayedImage.getlLabMatrix(), imgDataCache.getHueImgColors());
+            BufferedImage reconstructedImg = ColorMapper.reconstructImage(imgDataCache.getHueImgColors(), displayedImage);
+            imv.setImage(SwingFXUtils.toFXImage(reconstructedImg, null));
         }
 
         recalculateLuminanceMatrix = false;
@@ -307,19 +326,26 @@ public class Main extends Application {
     private void setupImageHandlingButtons(VBox rightMenu){
         if(!imageButtonsCreated) {
             Button displayBtn = new Button("View");
+            displayBtn.setFont(Font.font("Segoe UI",12));
             displayBtn.setOnAction(e -> {
                 List<UnmergedImage> selectedImgs = imgDataCache.getSelectedImages();
                 if (!selectedImgs.isEmpty()) {
                     if (selectedImgs.size() == 1) {
                         this.displayedImage = selectedImgs.get(0);
                     } else {
-                        this.displayedImage = imgDataCache.mergeAllImages();
+                        if(imgDataCache.imgDimensionsEqual()) {
+                            this.displayedImage = imgDataCache.mergeAllImages();
+                        }else{
+                            alertDimensionsNotEqual();
+                        }
                     }
                     refreshView();
                 }
             });
 
             Button deleteBtn = new Button("Delete");
+            deleteBtn.setFont(Font.font("Segoe UI",12));
+
             deleteBtn.setOnAction(e -> {
                 List<UnmergedImage> selectedImgs = imgDataCache.getSelectedImages();
                 if (selectedImgs != null) {
@@ -341,10 +367,20 @@ public class Main extends Application {
                 }
             });
             HBox box = new HBox(displayBtn, deleteBtn);
+            box.setSpacing(10);
+            box.setAlignment(Pos.CENTER);
             rightMenu.getChildren().add(box);
             imageButtonsCreated = true;
         }
     }
+
+    private void alertDimensionsNotEqual() {
+        Alert invalidNumberAlert = new Alert(Alert.AlertType.ERROR);
+        invalidNumberAlert.setContentText("Selected images do not have the same sizes!\nCannot merge images with different dimensions.");
+        invalidNumberAlert.setHeaderText("Size mismatch");
+        invalidNumberAlert.showAndWait();
+    }
+
     private void addTooltip(UnmergedImage addedImage, VBox rightMenu) {
 
         Label imgName = new Label(addedImage.getImgName());
@@ -362,6 +398,7 @@ public class Main extends Application {
         });
 
         HBox hBox = new HBox(checkBox, detailsBtn);
+        hBox.setPadding(new Insets(0, 0, 2, 0));
         hBox.setAlignment(Pos.CENTER);
 
         ImageTooltip imgTooltip = new ImageTooltip(addedImage, imgName, hBox);
@@ -386,16 +423,6 @@ public class Main extends Application {
 
         closeBtn.setOnAction(e -> stage.close());
         stage.show();
-    }
-
-    private boolean imgDimensionsEqual(BufferedImage[] images) {
-        boolean allEqual = true;
-        for (int i = 0; i < images.length - 1; i++) {
-            if (images[i].getWidth() != images[i + 1].getWidth() || images[i].getHeight() != images[i + 1].getHeight()) {
-                allEqual = false;
-            }
-        }
-        return allEqual;
     }
 
     private VBox createLegend() {

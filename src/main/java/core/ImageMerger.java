@@ -7,13 +7,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-/*merges multiple images with different exposures into one luminance matrix
-* NOTE: does not support external formula calculation, only default formula with coefficients present in config.properties file*/
+        /*merges multiple images with different exposures into one luminance matrix
+         * NOTE: does not support external formula calculation, only default formula with coefficients present in config.properties file*/
 
 public class ImageMerger {
     private ImageProcessor imgProcessor;
     private ImageDataCache cache;
-    private PropertiesManager props;
 
     private static final Logger logger = Logger.getRootLogger();
 
@@ -24,65 +23,60 @@ public class ImageMerger {
     }
 
     public MergedImage MergeImages(List<UnmergedImage> images) {
-        long totalStart = System.nanoTime();
-        props = new PropertiesManager();
-        double coeffA = Double.parseDouble(props.getProperty("coefficientA"));
-        double coeffB = Double.parseDouble(props.getProperty("coefficientB"));
 
         MergedImage merged = new MergedImage(images);
-        //initialize remaining images
+        //vypocti zbyle matice z nahranych fotografii
         initializeImages(images);
-
+        //zvolme referencni fotografii
         UnmergedImage baseImage = images.get(0);
 
-        /*make a copy both arrays to not affect original object*/
-        double[][] enhancedLlabMatrix = Arrays.stream(baseImage.getlLabMatrix())
+        //vytvor kopii obou matic abys nezasahoval do puvodnich
+        double[][] mergedLlabMatrix = Arrays.stream(baseImage.getlLabMatrix())
                 .map(double[]::clone)
                 .toArray(double[][]::new);
         double[][] mergedLuminanceMatrix = Arrays.stream(baseImage.getLuminanceMatrix())
                 .map(double[]::clone)
                 .toArray(double[][]::new);
 
+        //zavedme list pro ukladani potencialnich nahrad
         ArrayList<UnmergedImage> potentialReplacements = new ArrayList<>();
-        for (int j = 0; j < enhancedLlabMatrix.length; j++) {
-            for (int i = 0; i < enhancedLlabMatrix[0].length; i++) {
 
-                //if value is invalid, look for a valid value in another matrix at the same index and replace with the best fit
-                if (!validLValue(enhancedLlabMatrix[j][i])) {
-                    long startTime = System.nanoTime();
-                    for (int k = 0; k < images.size(); k++) {
-                        if(k == images.indexOf(baseImage)) continue;
-
-                        UnmergedImage currentImg = images.get(k);
-                        double lLabValue = currentImg.getlLabMatrix()[j][i];
-                        if (validLValue(lLabValue)) {
-                            potentialReplacements.add(currentImg);
-                        }
+        for (int j = 0; j < mergedLlabMatrix.length; j++) {
+            for (int i = 0; i < mergedLlabMatrix[0].length; i++) {
+                //iteruj mezi jednotlivymi fotografiemi a hledej vhodnejsi nahrady
+                for (UnmergedImage img : images) {
+                    double lLabValue = img.getlLabMatrix()[j][i];
+                    if (validLValue(lLabValue)) {
+                        potentialReplacements.add(img);
                     }
-                    if (!(potentialReplacements.size() == 0)) {
-                        //find image with replacing value closest to Llab = 50
-                        UnmergedImage replacingImage = closestTo50(potentialReplacements, j, i);
-                        //replace llab value
-                        enhancedLlabMatrix[j][i] = replacingImage.getlLabMatrix()[j][i];
-                        //replace luminance value
-                        mergedLuminanceMatrix[j][i] = imgProcessor.calculatePixelLuminance(replacingImage, j, i, coeffA, coeffB);
-                        long totalTime = System.nanoTime() - startTime;
-                    }
-                    potentialReplacements.clear();
                 }
+                //vyber z potencialnich nahrad tu nejblize LLab = 50
+                //pote uloz do referencni
+                if (!(potentialReplacements.size() == 0)) {
+                    UnmergedImage replacingImage =
+                            closestTo50(potentialReplacements, j, i);
+                    if(replacingImage != baseImage) {
+                        //replace llab value
+                        mergedLlabMatrix[j][i] =
+                                replacingImage.getlLabMatrix()[j][i];
+                        //replace luminance value
+                        mergedLuminanceMatrix[j][i] =
+                                replacingImage.getLuminanceMatrix()[j][i];
+                    }
+                }
+                potentialReplacements.clear();
             }
         }
-        merged.setlLabMatrix(enhancedLlabMatrix);
+        merged.setlLabMatrix(mergedLlabMatrix);
         merged.setLuminanceMatrix(mergedLuminanceMatrix);
-        props = null;
         return merged;
     }
 
-    public List<UnmergedImage> initializeImages(List<UnmergedImage> images){
+    private List<UnmergedImage> initializeImages(List<UnmergedImage> images) {
 
-        for(UnmergedImage img : images){
-            if(!img.isInitialized()){
-               cache.initializeImageMatrices(img, false);
+        for (UnmergedImage img : images) {
+            if (!img.isInitialized()) {
+                cache.initializeImageMatrices(img, false);
             }
         }
         return images;
@@ -94,7 +88,8 @@ public class ImageMerger {
 
         for (int a = 1; a < contenders.size(); a++) {
             double currentValue = contenders.get(a).getlLabMatrix()[j][i];
-            if (Math.abs(closest.getlLabMatrix()[j][i] - 50) > Math.abs(currentValue - 50)){
+            if (Math.abs(closest.getlLabMatrix()[j][i] - 50)
+                    > Math.abs(currentValue - 50)) {
                 closest = contenders.get(a);
             }
         }
@@ -103,21 +98,6 @@ public class ImageMerger {
 
     private boolean validLValue(double value) {
         return (value > 20) && (value < 80);
-    }
-
-    public int countInvalidPixels(double[][] matrix) {
-        int count = 0;
-
-        int cols = matrix[0].length;
-        int rows = matrix.length;
-
-        for (int i = 0; i < cols; i++) {
-            for (int j = 0; j < rows; j++) {
-                if (!validLValue(matrix[j][i])) count++;
-            }
-        }
-
-        return count;
     }
 
 }

@@ -5,8 +5,6 @@ import org.mariuszgromada.math.mxparser.*;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.util.concurrent.RecursiveAction;
 
 public class ImageProcessor{
 
@@ -15,9 +13,7 @@ public class ImageProcessor{
 
     //converts given argb pixel to Lab color system, returns a double array in the form [L, a, b]
     public double convertPixelRgbToLab(int pixel) {
-        //
         Color color = new Color(pixel);
-        //
         return xyzToLab(rgbToXyz(color.getRed(), color.getGreen(), color.getBlue()));
     }
 
@@ -120,7 +116,9 @@ public class ImageProcessor{
         return luminanceMatrix;
     }
     //overloaded method with formula coefficients input instead of the whole formula, as it is unlikely the equation itself will change
-    public double[][] constructLuminanceMatrix(double[][] LlabMatrix, double aperture, double exposure, double Acoeff, double Bcoeff) {
+    public double[][] constructLuminanceMatrix(double[][] LlabMatrix,
+                                               double aperture, double exposure,
+                                               double Acoeff, double Bcoeff) {
 
         int rows = LlabMatrix.length;
         int cols = LlabMatrix[0].length;
@@ -136,7 +134,9 @@ public class ImageProcessor{
                 } else if (LlabMatrix[j][i] >= 80) {
                     luminanceMatrix[j][i] = 9999;
                 } else {
-                    luminanceMatrix[j][i] = (aperture * aperture / exposure) * Acoeff * Math.exp(Bcoeff * LlabMatrix[j][i]);
+                    luminanceMatrix[j][i] =
+                            (aperture * aperture / exposure) *
+                                    Acoeff * Math.exp(Bcoeff * LlabMatrix[j][i]);
                 }
             }
         }

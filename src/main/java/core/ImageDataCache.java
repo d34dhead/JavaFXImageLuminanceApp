@@ -3,7 +3,6 @@ package core;
 import com.drew.lang.annotations.NotNull;
 
 import java.awt.Color;
-import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ForkJoinPool;
@@ -21,13 +20,13 @@ public class ImageDataCache {
     private ImageProcessor processor = new ImageProcessor();
     private ImageMerger merger = new ImageMerger(processor, this);
 
-    private ForkConstructLlabMatrix llabForkTask;
+    private ConstructLlabMatrixForkTask llabForkTask;
     private ConstructLuminanceMatrixForkTask luminanceForkTask;
     private ForkJoinPool pool;
 
     //default color scale
-    private Color[] hueImgColors = new Color[]{Color.BLACK, new Color(255, 0, 0),
-            new Color(219, 70, 2), new Color(247, 220, 17), Color.WHITE};
+    private Color[] hueImgColors = new Color[]{Color.RED, new Color(255, 89, 0),
+            new Color(255, 140, 0), new Color(255, 187, 0), Color.YELLOW};
     private String luminanceFormula;
 
     private ImageDataCache(){
@@ -45,7 +44,7 @@ public class ImageDataCache {
     public void initializeImageMatrices(MyImage myImg, boolean coeffsChanged){
         UnmergedImage img = (UnmergedImage) myImg;
         if(img.getlLabMatrix() == null) {
-            this.llabForkTask = new ForkConstructLlabMatrix(this.processor, img.getImg());
+            this.llabForkTask = new ConstructLlabMatrixForkTask(this.processor, img.getImg());
             pool.execute(llabForkTask);
             img.setlLabMatrix(llabForkTask.join());
         }
@@ -96,12 +95,24 @@ public class ImageDataCache {
         return hueImgColors;
     }
 
-    public double getPixelLuminance(int x, int y) {
-        return this.lMatrix[y][x];
-    }
-
     public MergedImage mergeAllImages(){
             return this.mergedImage = merger.MergeImages(this.imageList);
+    }
+
+    public boolean imgDimensionsEqual() {
+        boolean allEqual = true;
+        for (int i = 0; i < imageList.size() - 1; i++) {
+            int width1 = imageList.get(i).getImg().getWidth();
+            int width2 = imageList.get(i+1).getImg().getWidth();
+            int height1 = imageList.get(i).getImg().getHeight();
+            int height2 = imageList.get(i+1).getImg().getHeight();
+
+            if (width1 != width2 || height1 != height2) {
+                allEqual = false;
+                break;
+            }
+        }
+        return allEqual;
     }
 
 

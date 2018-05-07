@@ -1,18 +1,34 @@
 package core;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.DoubleStream;
 
 public class MergedImage implements MyImage {
     private final String imgName;
     private double [][] lLabMatrix;
     private double [][] luminanceMatrix;
-    private List<UnmergedImage> sourceImages;
     private String resolution;
+    private double maxLuminance;
+    private double minLuminance;
 
     public MergedImage(List<UnmergedImage> sourceImages){
         this.imgName = "Merged image";
-        this.sourceImages = sourceImages;
         this.resolution = sourceImages.get(0).getResulution();
+    }
+
+    public double getMaxLuminance() {
+        if(maxLuminance == 0){
+            return this.findMaxLuminance();
+        }
+        return maxLuminance;
+    }
+
+    public double getMinLuminance() {
+        if(minLuminance == 0){
+            return this.findMinLuminance();
+        }
+        return minLuminance;
     }
 
     public String getImgName() {
@@ -30,6 +46,22 @@ public class MergedImage implements MyImage {
 
     public void setlLabMatrix(double[][] lLabMatrix) {
         this.lLabMatrix = lLabMatrix;
+    }
+
+    private double findMaxLuminance() {
+        if(isInitialized()){
+            DoubleStream stream = Arrays.stream(luminanceMatrix).flatMapToDouble(Arrays::stream).filter(d -> (d != 0 && d != 9999));
+            return maxLuminance = stream.max().getAsDouble();
+        }
+        return 0;
+    }
+
+    private double findMinLuminance() {
+        if(isInitialized()){
+            DoubleStream stream = Arrays.stream(luminanceMatrix).flatMapToDouble(Arrays::stream).filter(d -> (d != 0 && d != 9999));
+            return minLuminance = stream.min().getAsDouble();
+        }
+        return 0;
     }
 
     public double[][] getLuminanceMatrix() {

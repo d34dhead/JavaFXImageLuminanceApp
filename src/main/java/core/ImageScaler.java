@@ -11,4 +11,5 @@ public class ImageScaler {
 
         return rescaleOp.doFilter(src, null, dstWidth, dstHeight);
     }
+
 }

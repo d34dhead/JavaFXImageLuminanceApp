@@ -14,7 +14,7 @@ import static org.junit.Assert.*;
 public class ForkConstructLlabMatrixTest {
     private ImageProcessor processor;
     private BufferedImage srcImg;
-    private ForkConstructLlabMatrix fork;
+    private ConstructLlabMatrixForkTask fork;
     private ForkJoinPool pool;
     private double[][] refLlabMatrix;
 
@@ -23,11 +23,11 @@ public class ForkConstructLlabMatrixTest {
         processor = new ImageProcessor();
         pool = new ForkJoinPool();
         srcImg = ImageIO.read(new File("5692x5594.jpg"));
-        fork = new ForkConstructLlabMatrix(processor, srcImg);
-        //long starttime = System.nanoTime();
+        fork = new ConstructLlabMatrixForkTask(processor, srcImg);
+        long starttime = System.nanoTime();
         refLlabMatrix = processor.constructLlabMatrix(srcImg);
-        //long timeElapsed = System.nanoTime() - starttime;
-        //System.out.println("Time elapsed single threaded: " + timeElapsed);
+        long timeElapsed = System.nanoTime() - starttime;
+        System.out.println("Time elapsed single threaded: " + timeElapsed);
     }
 
     @Test

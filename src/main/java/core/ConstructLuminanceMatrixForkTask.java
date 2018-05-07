@@ -5,36 +5,27 @@ import java.util.concurrent.RecursiveTask;
 
 public class ConstructLuminanceMatrixForkTask extends RecursiveTask<double[][]> {
 
-    private ImageProcessor processor;
-    private double[][] src;
-    private double[][] dst;
-    private int rows;
-    private int cols;
-    private int threadCount;
+    private static ImageProcessor processor;
+    private static double[][] src;
+    private static double[][] dst;
+    private static int rows;
+    private static int cols;
+    private static int threadCount;
     private int startX;
     private int endX;
     private int startY;
     private int endY;
-    private double fNumber;
-    private double exposureTime;
-    private double aCoeff;
-    private double bCoeff;
+    private static double fNumber;
+    private static double exposureTime;
+    private static double aCoeff;
+    private static double bCoeff;
 
-    private ConstructLuminanceMatrixForkTask(ImageProcessor processor, double[][] src, double[][] dst, int rows, int cols, int startX,
-                                             int endX, int startY, int endY, double fNumber, double exposureTime, double aCoeff, double bCoeff) {
-        this.processor = processor;
-        this.src = src;
-        this.dst = dst;
-        this.rows = rows;
-        this.cols = cols;
+    private ConstructLuminanceMatrixForkTask(int startX, int endX, int startY, int endY) {
+
         this.startX = startX;
         this.endX = endX;
         this.startY = startY;
         this.endY = endY;
-        this.fNumber = fNumber;
-        this.exposureTime = exposureTime;
-        this.aCoeff = aCoeff;
-        this.bCoeff = bCoeff;
     }
 
     public ConstructLuminanceMatrixForkTask(ImageProcessor processor, double[][] src, double fNumber, double exposureTime, double aCoeff, double bCoeff) {
@@ -73,7 +64,7 @@ public class ConstructLuminanceMatrixForkTask extends RecursiveTask<double[][]> 
             for (int i = 0; i < threadCount; i++) {
                 startY = i * sectionHeight;
                 endY = (i + 1) * sectionHeight;
-                tasks[i] = new ConstructLuminanceMatrixForkTask(processor, src, dst, rows, cols, startX, endX, startY, endY, fNumber, exposureTime, aCoeff, bCoeff);
+                tasks[i] = new ConstructLuminanceMatrixForkTask(startX, endX, startY, endY);
             }
         } else if (cols % threadCount == 0) {
             startY = 0;
@@ -83,7 +74,7 @@ public class ConstructLuminanceMatrixForkTask extends RecursiveTask<double[][]> 
             for (int i = 0; i < threadCount; i++) {
                 startX = i * sectionWidth;
                 endX = (i + 1) * sectionWidth;
-                tasks[i] = new ConstructLuminanceMatrixForkTask(processor, src, dst, rows, cols, startX, endX, startY, endY, fNumber, exposureTime, aCoeff, bCoeff);
+                tasks[i] = new ConstructLuminanceMatrixForkTask(startX, endX, startY, endY);
             }
         } else {//no dimension divisible by threadCount -> last section is larger
             startX = 0;
@@ -98,7 +89,7 @@ public class ConstructLuminanceMatrixForkTask extends RecursiveTask<double[][]> 
                 } else {
                     endY = (i + 1) * sectionHeight;
                 }
-                tasks[i] = new ConstructLuminanceMatrixForkTask(processor, src, dst, rows, cols, startX, endX, startY, endY, fNumber, exposureTime, aCoeff, bCoeff);
+                tasks[i] = new ConstructLuminanceMatrixForkTask(startX, endX, startY, endY);
             }
         }
         return tasks;
