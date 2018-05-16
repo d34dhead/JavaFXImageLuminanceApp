@@ -27,7 +27,9 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -40,6 +42,11 @@ public class Main extends Application {
     private boolean imageButtonsCreated = false;
     private boolean recalculateLuminanceMatrix = false;
     private MyImage displayedImage;
+    private ReconstructedImage reconstructedImage;
+    private final Tab measure = new Tab("Measure");
+    private final Tab colors = new Tab("Color");
+    private TabPane tabPane = new TabPane();
+    private Button renderBtn = new Button("Render");
 
     @Override
     public void start(Stage primaryStage) {
@@ -62,7 +69,6 @@ public class Main extends Application {
         menu.getMenus().addAll(menuFile, menuSettings);
 
         coefficientsItem.setOnAction(e -> showCoefficientsWindow());
-        formulaItem.setOnAction(e -> showFormulaWindow());
 
         /*grid setup*/
         GridPane gridpane = new GridPane();
@@ -83,7 +89,7 @@ public class Main extends Application {
         /*RHS menu setup*/
 
         final Label luminance = new Label("Luminance (cd/m^2)");
-        luminance.setFont(Font.font("Segoe UI",12));
+        luminance.setFont(Font.font("Segoe UI", 12));
         luminance.setMaxWidth(Double.MAX_VALUE);
         luminance.setAlignment(Pos.CENTER);
 
@@ -92,7 +98,7 @@ public class Main extends Application {
         lumTextField.setAlignment(Pos.CENTER);
 
         final Label llabLabel = new Label("LLab");
-        llabLabel.setFont(Font.font("Segoe UI",12));
+        llabLabel.setFont(Font.font("Segoe UI", 12));
         llabLabel.setMaxWidth(Double.MAX_VALUE);
         llabLabel.setAlignment(Pos.CENTER);
 
@@ -108,9 +114,16 @@ public class Main extends Application {
         imv.setPreserveRatio(true);
         imv.setOnMouseMoved(e -> {
             if (this.displayedImage.isInitialized()) {
-                coords.setText("X: " + (int) Math.floor(e.getX()) + " Y: " + (int) Math.floor(e.getY()));
-                llabTextField.setText(String.format("%.3f", this.displayedImage.getlLabMatrix()[(int) Math.floor(e.getY())][(int) Math.floor(e.getX())]));
-                lumTextField.setText(String.format("%.3f", this.displayedImage.getLuminanceMatrix()[(int) Math.floor(e.getY())][(int) Math.floor(e.getX())]));
+                int x = (int) Math.floor(e.getX());
+                int y = (int) Math.floor(e.getY());
+                coords.setText(
+                        "X: " + x + " Y: " + y);
+
+                llabTextField.setText(String.format("%.3f",
+                        this.displayedImage.getlLabMatrix()[y][x]));
+
+                lumTextField.setText(String.format("%.3f",
+                        this.displayedImage.getLuminanceMatrix()[y][x]));
             }
         });
 
@@ -130,8 +143,10 @@ public class Main extends Application {
 
         /*fileChooser setup*/
         FileChooser fileChooser = new FileChooser();
-        List<String> extensions = Arrays.asList("*.jpg", "*.jpeg", "*.tif", "*.tiff", "*.png", "*.bmp");
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image files", extensions));
+        List<String> extensions = Arrays.asList("*.jpg", "*.jpeg", "*.tif", "*.tiff",
+                "*.png", "*.bmp");
+        fileChooser.getExtensionFilters().add(
+                new FileChooser.ExtensionFilter("Image files", extensions));
         openItem.setOnAction(event -> {
             File file = fileChooser.showOpenDialog(primaryStage);
 
@@ -144,9 +159,14 @@ public class Main extends Application {
             }
         });
 
+        /*tabpane setup*/
+        measure.setContent(vertBox);
+        colors.setContent(createColorVBox(convertAwtColorsToJFX(imgDataCache.getDefaultColors())));
+        tabPane.getTabs().addAll(measure, colors);
+
         /*populate grid*/
         gridpane.add(scrollPane, 0, 0);
-        gridpane.add(vertBox, 1, 0);
+        gridpane.add(tabPane, 1, 0);
         root.getChildren().addAll(menu, gridpane);
 
         primaryStage.setMaximized(true);
@@ -155,6 +175,105 @@ public class Main extends Application {
         primaryStage.show();
     }
 
+    private VBox createColorVBox(Color[] colors) {
+        Label thresholdLabel = new Label("L (cd/m^2)");
+        thresholdLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 12));
+        thresholdLabel.setAlignment(Pos.CENTER_RIGHT);
+        thresholdLabel.setMaxWidth(Double.MAX_VALUE);
+
+        VBox pickers = new VBox();
+        pickers.setPadding(new Insets(10, 10, 10, 10));
+        pickers.setSpacing(5);
+        pickers.setBorder(new Border(new BorderStroke(Color.GRAY, BorderStrokeStyle.SOLID, new CornerRadii(5), BorderWidths.DEFAULT)));
+        pickers.getChildren().add(thresholdLabel);
+
+        for (int i = 0; i < colors.length; i++) {
+            HBox row = new HBox();
+            row.setSpacing(5);
+            row.setAlignment(Pos.CENTER);
+
+            ColorPicker picker = new ColorPicker(colors[colors.length - 1 - i]);
+            picker.setStyle("-fx-color-label-visible: false ;" +
+                    "-fx-color-rect-width: 20px ;" +
+                    "-fx-color-rect-height: 20px;");
+            picker.setMaxWidth(Double.MAX_VALUE);
+
+            TextField luminanceThreshhold = new TextField();
+            luminanceThreshhold.setFont(Font.font("Segoe UI", FontWeight.BOLD, 12));
+            luminanceThreshhold.setAlignment(Pos.CENTER);
+            luminanceThreshhold.setMinWidth(0);
+
+            row.getChildren().addAll(picker, luminanceThreshhold);
+            pickers.getChildren().add(row);
+        }
+
+        renderBtn.setVisible(false);
+        renderBtn.setOnAction(e -> {
+            List<TextField> textFields = extractLuminanceThreshholdTextFields();
+            double[] threshholds = new double[textFields.size()];
+
+            for (int i = 0; i < textFields.size(); i++) {
+                String text = textFields.get(i).getText();
+                if (isValidDouble(text)) {
+                    threshholds[i] = Double.parseDouble(text);
+                } else {
+                    alertInvalidNumber();
+                    break;
+                }
+            }
+            if (!validateThreshHoldValues(threshholds)) {
+                alertInvalidValues();
+            } else {
+                java.awt.Color[] extractedColors = extractSelectedColors();
+                reconstructedImage.setLuminanceThreshholds(threshholds);
+                reconstructedImage.setColors(extractedColors);
+                reconstructedImage = ColorMapper.reconstructImage(displayedImage, reconstructedImage);
+                imv.setImage(SwingFXUtils.toFXImage(reconstructedImage, null));
+            }
+        });
+        renderBtn.setFont(Font.font("Segoe UI", FontWeight.BOLD, 12));
+        renderBtn.setAlignment(Pos.CENTER);
+        renderBtn.setMaxWidth(Double.MAX_VALUE);
+
+        pickers.getChildren().add(renderBtn);
+        return pickers;
+    }
+
+    private void alertInvalidValues() {
+        Alert invalidValueAlert = new Alert(Alert.AlertType.ERROR);
+        invalidValueAlert.setContentText("Luminance threshholds not valid.\n" +
+                "Make sure they are in descending order and\n" +
+                "within the bounds of max and min L values.");
+        invalidValueAlert.setHeaderText("Invalid input");
+        invalidValueAlert.showAndWait();
+    }
+
+    private java.awt.Color[] extractSelectedColors() {
+        VBox box = (VBox) colors.getContent();
+        List<HBox> boxes = box.getChildren().stream()
+                .filter(e -> e instanceof HBox)
+                .map(obj -> (HBox) obj)
+                .collect(Collectors.toList());
+
+        //get each color from each box and put into the list
+        List<ColorPicker> colorpickers = new ArrayList<>();
+        boxes.stream().forEach(hbox -> colorpickers.add((ColorPicker) hbox.getChildren().get(0)));
+
+        List<Color> fxcolors = new ArrayList<>();
+        colorpickers.stream().forEach(p -> fxcolors.add(p.getValue()));
+
+        return convertFxColorsToAwt(fxcolors.toArray(new Color[fxcolors.size()]));
+    }
+
+    private boolean validateThreshHoldValues(double[] threshholds) {
+        if (threshholds[0] > displayedImage.getMaxLuminance()) return false;
+        if (threshholds[threshholds.length - 1] < displayedImage.getMinLuminance()) return false;
+
+        for (int i = 0; i < threshholds.length - 1; i++) {
+            if (threshholds[i] <= threshholds[i + 1]) return false;
+        }
+        return true;
+    }
 
     private void alertInvalidNumber() {
         Alert invalidNumberAlert = new Alert(Alert.AlertType.ERROR);
@@ -189,7 +308,7 @@ public class Main extends Application {
                 stage.close();
                 recalculateLuminanceMatrix = true;
                 refreshView();
-            }else{
+            } else {
                 alertInvalidNumber();
             }
         });
@@ -243,99 +362,164 @@ public class Main extends Application {
         stage.show();
     }
 
-    private void showFormulaWindow() {
-        Stage stage = new Stage();
-        VBox formulaBox = new VBox();
-        formulaBox.setPadding(new Insets(10));
-        formulaBox.setAlignment(Pos.CENTER);
+    private Color[] convertAwtColorsToJFX(java.awt.Color[] awtColors) {
+        Color[] fxColors = new Color[awtColors.length];
 
-        Label label = new Label("Enter formula to calculate luminance(L [cd/m^2]) from lightness(Llab [-]), aperture number(F [-]) and exposure time(t [s])." +
-                "Example: (F^2*t)*e^(Llab*10)");
-        label.setWrapText(true);
-        TextField formulaText = new TextField();
-        formulaText.setPromptText("enter formula");
-        Button submitBtn = new Button("Submit");
-        //TODO: add formula input validation
-        submitBtn.setOnAction(e -> {
-            imgDataCache.setLuminanceFormula(formulaText.getText());
-            stage.close();
-            recalculateLuminanceMatrix = true;
-            refreshView();
-        });
-        formulaBox.getChildren().addAll(label, formulaText, submitBtn);
-        Scene scene = new Scene(formulaBox, 250, 150);
-        stage.setScene(scene);
-        stage.show();
+        for (int i = 0; i < awtColors.length; i++) {
+            java.awt.Color awtColor = awtColors[i];
+
+            int r = awtColor.getRed();
+            int g = awtColor.getGreen();
+            int b = awtColor.getBlue();
+            int a = awtColor.getAlpha();
+            double opacity = a / 255.0;
+
+            javafx.scene.paint.Color fxColor = javafx.scene.paint.Color.rgb(r, g, b, opacity);
+            fxColors[i] = fxColor;
+        }
+
+        return fxColors;
+    }
+
+    private java.awt.Color[] convertFxColorsToAwt(Color[] fxColors) {
+        java.awt.Color[] awtColors = new java.awt.Color[fxColors.length];
+
+        for (int i = 0; i < awtColors.length; i++) {
+            Color fxColor = fxColors[i];
+            awtColors[i] = new java.awt.Color(
+                    (float) fxColor.getRed(),
+                    (float) fxColor.getGreen(),
+                    (float) fxColor.getBlue(),
+                    (float) fxColor.getOpacity());
+        }
+
+        return awtColors;
     }
 
     private void refreshView() {
-        if (!imgDataCache.getImageList().contains(displayedImage) && displayedImage instanceof UnmergedImage) {
+        if ((!imgDataCache.getImageList().contains(displayedImage) && displayedImage instanceof UnmergedImage)
+                || imgDataCache.getImageList().isEmpty()) {
             displayedImage = null;
             imv.setImage(null);
+            renderBtn.setVisible(false);
         }
 
         if (displayedImage != null) {
             if (displayedImage instanceof UnmergedImage) {
                 this.imgDataCache.initializeImageMatrices(displayedImage, recalculateLuminanceMatrix);
             }
-            //BufferedImage hueImg = processor.constructHueImage(displayedImage.getlLabMatrix(), imgDataCache.getHueImgColors());
-            BufferedImage reconstructedImg = ColorMapper.reconstructImage(imgDataCache.getHueImgColors(), displayedImage);
-            imv.setImage(SwingFXUtils.toFXImage(reconstructedImg, null));
+            reconstructedImage = ColorMapper.reconstructImage(displayedImage);
+            updateColorThreshholds();
+            renderBtn.setVisible(true);
+            imv.setImage(SwingFXUtils.toFXImage(reconstructedImage, null));
+
         }
 
         recalculateLuminanceMatrix = false;
     }
 
-    private void loadImg(File file, VBox rightMenu) throws IOException {
+    private void resetColorsToDefault(){
+        VBox box = (VBox) colors.getContent();
+        List<HBox> boxes = box.getChildren().stream()
+                .filter(e -> e instanceof HBox)
+                .map(obj -> (HBox) obj)
+                .collect(Collectors.toList());
 
-            final String fileName = file.getName();
-            final BufferedImage image = ImageIO.read(file);
+        //reset each colorpicker
+        List<ColorPicker> colorpickers = new ArrayList<>();
+        boxes.stream().forEach(hbox -> colorpickers.add((ColorPicker) hbox.getChildren().get(0)));
 
-            Stage exposureInputStage = new Stage();
+        Color[] colors = convertAwtColorsToJFX(reconstructedImage.DEFAULT_COLORS);
+        for(int j = 0; j < colors.length; j++){
+            colorpickers.get(j).setValue(colors[j]);
+        }
+    }
+    private void updateColorThreshholds() {
+        resetColorsToDefault();
+        List<TextField> textFields = extractLuminanceThreshholdTextFields();
+        double[] threshholds = reconstructedImage.getLuminanceThreshholds();
 
-            Label exposureLabel = new Label("Enter exposure parameters below:");
-            TextField fNumberTextField = new TextField("F-number");
-            TextField exposureTimeTextField = new TextField("exposure time [s]");
+        for (int i = 0; i < threshholds.length; i++) {
+            textFields.get(i).setText(String.format("%.3f",
+                    threshholds[i]));
+        }
 
-            Button okBtn = new Button("OK");
-            okBtn.setOnAction( e -> {
-                String fNumberText = fNumberTextField.getText();
-                String exposureTimeText = exposureTimeTextField.getText();
-
-                if (isValidDouble(fNumberText) && isValidDouble(exposureTimeText)) {
-                    double fNumber = Double.parseDouble(fNumberText);
-                    double exposureTime = Double.parseDouble(exposureTimeText);
-
-                    UnmergedImage toBeAdded = new UnmergedImage(image, exposureTime, fNumber, fileName);
-                    imgDataCache.getImageList().add(toBeAdded);
-
-
-                    exposureInputStage.close();
-                    setupImageHandlingButtons(rightMenu);
-                    addTooltip(toBeAdded, rightMenu);
-                } else {
-                    alertInvalidNumber();
-                }
-            });
-            VBox vBox = new VBox(exposureLabel, fNumberTextField, exposureTimeTextField, okBtn);
-            Scene scene = new Scene(vBox, 200, 200);
-            exposureInputStage.setScene(scene);
-            exposureInputStage.show();
     }
 
-    private void setupImageHandlingButtons(VBox rightMenu){
-        if(!imageButtonsCreated) {
+    private List<TextField> extractLuminanceThreshholdTextFields() {
+        VBox box = (VBox) colors.getContent();
+        List<HBox> boxes = box.getChildren().stream()
+                .filter(e -> e instanceof HBox)
+                .map(obj -> (HBox) obj)
+                .collect(Collectors.toList());
+        //get each textfield from each box and put into the list
+        List<TextField> textFields = new ArrayList<>();
+        boxes.stream().forEach(hbox -> textFields.add((TextField) hbox.getChildren().get(1)));
+        return textFields;
+    }
+
+    private void loadImg(File file, VBox rightMenu) throws IOException {
+
+        final String fileName = file.getName();
+        final BufferedImage image = ImageIO.read(file);
+
+        Stage exposureInputStage = new Stage();
+
+        Label exposureLabel = new Label("Enter exposure parameters for file:\n"
+                + fileName);
+        exposureLabel.setFont(Font.font("Segoe UI", 12));
+
+        TextField fNumberTextField = new TextField("F-number");
+        fNumberTextField.setFont(Font.font("Segoe UI", FontWeight.BOLD, 12));
+        fNumberTextField.setAlignment(Pos.CENTER);
+
+        TextField exposureTimeTextField = new TextField("exposure time [s]");
+        exposureTimeTextField.setFont(Font.font("Segoe UI", FontWeight.BOLD, 12));
+        exposureTimeTextField.setAlignment(Pos.CENTER);
+
+        Button okBtn = new Button("OK");
+        okBtn.setOnAction(e -> {
+            String fNumberText = fNumberTextField.getText();
+            String exposureTimeText = exposureTimeTextField.getText();
+
+            if (isValidDouble(fNumberText) && isValidDouble(exposureTimeText)) {
+                double fNumber = Double.parseDouble(fNumberText);
+                double exposureTime = Double.parseDouble(exposureTimeText);
+
+                UnmergedImage toBeAdded = new UnmergedImage(image, exposureTime, fNumber, fileName);
+                imgDataCache.getImageList().add(toBeAdded);
+
+                setupImageHandlingButtons(rightMenu);
+                addImageMenuItem(toBeAdded, rightMenu);
+                exposureInputStage.close();
+            } else {
+                alertInvalidNumber();
+            }
+        });
+
+        VBox vBox = new VBox(exposureLabel, fNumberTextField, exposureTimeTextField, okBtn);
+        vBox.setAlignment(Pos.CENTER);
+        vBox.setSpacing(5);
+        vBox.setPadding(new Insets(5));
+
+        Scene scene = new Scene(vBox, 200, 160);
+        exposureInputStage.setScene(scene);
+        exposureInputStage.show();
+    }
+
+    private void setupImageHandlingButtons(VBox rightMenu) {
+        if (!imageButtonsCreated) {
             Button displayBtn = new Button("View");
-            displayBtn.setFont(Font.font("Segoe UI",12));
+            displayBtn.setFont(Font.font("Segoe UI", 12));
             displayBtn.setOnAction(e -> {
                 List<UnmergedImage> selectedImgs = imgDataCache.getSelectedImages();
                 if (!selectedImgs.isEmpty()) {
                     if (selectedImgs.size() == 1) {
                         this.displayedImage = selectedImgs.get(0);
                     } else {
-                        if(imgDataCache.imgDimensionsEqual()) {
-                            this.displayedImage = imgDataCache.mergeAllImages();
-                        }else{
+                        if (imgDataCache.imgDimensionsEqual()) {
+                            this.displayedImage = imgDataCache.mergeSelectedImages();
+                        } else {
                             alertDimensionsNotEqual();
                         }
                     }
@@ -344,18 +528,18 @@ public class Main extends Application {
             });
 
             Button deleteBtn = new Button("Delete");
-            deleteBtn.setFont(Font.font("Segoe UI",12));
+            deleteBtn.setFont(Font.font("Segoe UI", 12));
 
             deleteBtn.setOnAction(e -> {
                 List<UnmergedImage> selectedImgs = imgDataCache.getSelectedImages();
                 if (selectedImgs != null) {
                     //get tooltips from rightmenu
-                    List<ImageTooltip> tooltips = rightMenu.getChildren().stream()
-                            .filter(elem -> elem instanceof ImageTooltip)
-                            .map(tip -> (ImageTooltip) tip)
+                    List<ImageMenuItem> imgMenuItems = rightMenu.getChildren().stream()
+                            .filter(elem -> elem instanceof ImageMenuItem)
+                            .map(item -> (ImageMenuItem) item)
                             .collect(Collectors.toList());
                     //remove selected tooltips from menu
-                    tooltips.stream()
+                    imgMenuItems.stream()
                             .forEach(a -> {
                                 UnmergedImage img = a.getImageReference();
                                 if (selectedImgs.contains(img)) {
@@ -381,10 +565,10 @@ public class Main extends Application {
         invalidNumberAlert.showAndWait();
     }
 
-    private void addTooltip(UnmergedImage addedImage, VBox rightMenu) {
+    private void addImageMenuItem(UnmergedImage addedImage, VBox rightMenu) {
 
         Label imgName = new Label(addedImage.getImgName());
-        imgName.setPadding(new Insets(0,0,0,5));
+        imgName.setPadding(new Insets(0, 0, 0, 5));
         imgName.setAlignment(Pos.CENTER);
 
         CheckBox checkBox = new CheckBox();
@@ -401,21 +585,30 @@ public class Main extends Application {
         hBox.setPadding(new Insets(0, 0, 2, 0));
         hBox.setAlignment(Pos.CENTER);
 
-        ImageTooltip imgTooltip = new ImageTooltip(addedImage, imgName, hBox);
-        imgTooltip.setBorder(new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT)));
-        imgTooltip.setAlignment(Pos.CENTER);
-        rightMenu.getChildren().add(imgTooltip);
+        ImageMenuItem imgMenuItem = new ImageMenuItem(addedImage, imgName, hBox);
+        imgMenuItem.setBorder(new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT)));
+        imgMenuItem.setAlignment(Pos.CENTER);
+        rightMenu.getChildren().add(imgMenuItem);
     }
 
     private void showImageDetails(UnmergedImage image) {
 
         Label exposureTime = new Label("Exposure time: " + String.format("%.5f", image.getExposureTime()));
+        exposureTime.setFont(Font.font("Segoe UI", 12));
+
         Label fNumber = new Label("F-number: " + String.format("%.5f", image.getfNumber()));
+        fNumber.setFont(Font.font("Segoe UI", 12));
+
         Label resolution = new Label(image.getResulution());
+        resolution.setFont(Font.font("Segoe UI", 12));
+
         Button closeBtn = new Button("Close");
+        closeBtn.setFont(Font.font("Segoe UI", 12));
 
         VBox vBox = new VBox(resolution, exposureTime, fNumber, closeBtn);
+        vBox.setSpacing(5);
         vBox.setAlignment(Pos.CENTER);
+
         Stage stage = new Stage();
         stage.setTitle(image.getImgName());
         Scene scene = new Scene(vBox, 300, 100);
@@ -425,54 +618,7 @@ public class Main extends Application {
         stage.show();
     }
 
-    private VBox createLegend() {
-        VBox legend = new VBox();
-        legend.setStyle("-fx-border-width: 1px;"
-                        + "-fx-border-color: black;"
-                        + "-fx-border-line: solid;"
-                        + "-fx-padding: 5px, 5px, 5px, 5px;"
-                        + "-fx-spacing: 5px;"
-        );
-        legend.setMaxWidth(Double.MAX_VALUE);
-        legend.setMaxHeight(Double.MAX_VALUE);
-        DecimalFormat df = new DecimalFormat("#");
-
-        java.awt.Color[] awtColors = imgDataCache.getHueImgColors();
-        int colorCount = awtColors.length;
-        double intervalSize = (100.f / colorCount);
-        Color[] fxColors = new Color[colorCount];
-
-        Label titleL = new Label("Lightness");
-        titleL.setStyle("-fx-alignment: center;");
-        legend.getChildren().add(titleL);
-
-        for (int i = 0; i < colorCount; i++) {
-            java.awt.Color awtColor = awtColors[i];
-            fxColors[i] = Color.rgb(awtColor.getRed(), awtColor.getGreen(), awtColor.getBlue());
-
-            Label interval = new Label(df.format(i * intervalSize));
-            interval.setMaxWidth(Double.MAX_VALUE);
-            interval.setStyle("-fx-font: bold 15px arial, serif;"
-                    + "-fx-padding: 0 0 0 10px;"
-                    + "-fx-text-align: center;"
-                    + "-fx-spacing: 10px");
-
-            Label coloredsquare = new Label("         ");
-            coloredsquare.setStyle("-fx-border-style: solid inside;" +
-                    "-fx-border-width: 1;" +
-                    "-fx-border-color: black;"
-                    + "-fx-spacing: 10px");
-            coloredsquare.setBackground(new Background(new BackgroundFill(fxColors[i], CornerRadii.EMPTY, Insets.EMPTY)));
-            HBox legendLine = new HBox(coloredsquare, interval);
-            legendLine.setStyle("-fx-alignment: center;");
-
-            legend.getChildren().add(legendLine);
-        }
-
-        return legend;
-    }
-
-    private boolean isValidDouble(String text){
+    private boolean isValidDouble(String text) {
         return text.matches("^[+-]?([0-9]*[.])?[0-9]+$");
     }
 
